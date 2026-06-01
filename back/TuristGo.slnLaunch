@@ -1,0 +1,13 @@
+[
+  {
+    "Name": "TuristGo Full Stack",
+    "Projects": [
+      {
+        "Path": "TuristGo.API\\TuristGo.API.csproj",
+        "Action": "Start",
+        "LaunchBrowser": true,
+        "LaunchUrl": "http://localhost:5173"
+      }
+    ]
+  }
+]

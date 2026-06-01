@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="TuristGo.API/TuristGo.API.csproj" />
+  <Project Path="TuristGo.DataAccess/TuristGo.DataAccess.csproj" />
+  <Project Path="TuristGo.Domain/TuristGo.Domain.csproj" />
+</Solution>

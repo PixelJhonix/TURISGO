@@ -1,0 +1,629 @@
+@startuml TuristGo_DiagramaDeClases_Merge
+
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam shadowing true
+skinparam linetype ortho
+skinparam roundcorner 8
+skinparam defaultFontSize 11
+
+skinparam class {
+    BackgroundColor<<Entidad>>     #DBEAFE
+    BorderColor<<Entidad>>         #1D4ED8
+    BackgroundColor<<Servicio>>    #DCFCE7
+    BorderColor<<Servicio>>        #15803D
+    BackgroundColor<<Controlador>> #FEF3C7
+    BorderColor<<Controlador>>     #D97706
+    BackgroundColor<<Producto>>    #F3F4F6
+    BorderColor<<Producto>>        #6B7280
+    BackgroundColor<<Director>>    #FDF4FF
+    BorderColor<<Director>>        #9333EA
+}
+skinparam interface {
+    BackgroundColor #F5F3FF
+    BorderColor #7C3AED
+}
+skinparam note {
+    BackgroundColor #FFFBEB
+    BorderColor #D97706
+}
+
+package "Modelo de Dominio" #F0F9FF {
+
+
+    abstract class Usuario <<Entidad>> {
+        - Id                    : Guid
+        - Nombre                : string
+        - Correo                : string
+        - ContrasenhaHash       : string
+        - TipoUsuario           : TipoUsuarioEnum
+        - Estado                : EstadoCuentaEnum
+        - Telefono              : string
+        ==
+        + CambiarEstado(nuevoEstado: EstadoCuentaEnum) : void
+        + VerificarContrasenha(candidata: string)      : bool
+        + RecuperarContrasenha(correo: string)         : void
+        + VerificaciónNoExistenciaCuenta(correo: string) : bool
+    }
+
+    class Turista <<Entidad>> {
+        - FotoPerfil : string
+        ==
+        + ActualizarPerfil(nombre: string, tel: string)         : void
+        + VisualizarReservaEstado(idUsuario: Guid, estado: string) : void
+        + VisualizarVehiculo(idTour: Guid)                      : void
+        + VerificacionDisponibilidadHorario(idUsuario: Guid, idTour: Guid) : bool
+        ' Nota: EliminarCuenta se delega a AdministradorService (RN de negocio)
+    }
+
+    class Agencia <<Entidad>> {
+        - NIT                   : string
+        - RazonSocial           : string
+        - DocumentoConstitucion : string
+        - PorcentajeRetencion   : decimal
+        - EstadoAgencia         : string
+        ==
+        + ValidarNIT()                                                     : bool
+        + RegistrarGuiaTuristico(correo: string, nombre: string,
+            contrasenha: string, certificado: CertificadoTurismo)          : void
+        + ConsultarGuiaTuristico(correo: string, nombre: string)           : void
+        + ActualizarCertificadoGuiaTuristico(correo: string,
+            certificado: CertificadoTurismo)                               : void
+    }
+
+    class Guia <<Entidad>> {
+        - DocumentoId     : string
+        - Experiencia     : string
+        - AgenciaAsociada : string
+        ==
+        + CertificadoEstaVigente()          : bool
+        + DiasParaVencimiento()             : int
+        + VisualizarPerfil()                : void
+        + VisualizarToursVinculados(idGuia: Guid) : void
+    }
+
+    class CertificadoTurismo <<Entidad>> {
+        - Id              : Guid
+        + Numero          : string
+        + FechaExpedicion : DateTime
+        + FechaVencimiento: DateTime
+        + EntidadEmisora  : string
+        + Estado          : string
+        ==
+        + Crear(numero: string, fechaExp: DateTime,
+            fechaVenc: DateTime, entidad: string, estado: string) : void
+        + CambiarEstado(nuevoEstado: string)                      : void
+        + EstaVigente()                                           : bool
+    }
+
+    class Administrador <<Entidad>> {
+        ==
+        + ConsultarReportes()            : void
+        + AprobarCuenta(idCuenta: Guid)  : void
+        + VisualizarListaUsuarios()      : void
+    }
+
+    class Tour <<Entidad>> {
+        - CodigoUnico      : string
+        - Nombre           : string
+        - Descripcion      : string
+        - Categoria        : CategoriaEnum
+        - Tipo             : string
+        - Ciudad           : string
+        - Precio           : decimal
+        - CuposMaximos     : int
+        - CuposDisponibles : int
+        - Duracion         : int
+        - FechaHoraInicio  : DateTime
+        - FechaHoraFin     : DateTime
+        - Estado           : EstadoTourEnum
+        - Activo           : bool
+        - PuntoEncuentro   : string
+        - CalificacionProm : decimal
+        ==
+        + HayCuposDisponibles()                                    : bool
+        + ReducirCupo()                                            : void
+        + LiberarCupo()                                            : void
+        + CruzaHorarioCon(otro: Tour)                              : bool
+        + PuedeActivarse()                                         : bool
+        ' [MEJORADO] Funciones de búsqueda/filtrado movidas a TourQueryService (SRP)
+        ' [MEJORADO] incorporado de E1:
+        + ValidarCapacidadParaReserva(cantPersonasReserva: int,
+            cantCupos: int)                                        : bool
+        + ValidarCapacidadVehiculo(capVehiculo: int,
+            cantPersonasTour: int)                                 : bool
+        + VerificacionCertificadoGuia(idGuia: Guid)                : bool
+    }
+
+    class Reserva <<Entidad>> {
+        - Id               : Guid
+        - NumeroReserva    : string
+        - FechaReserva     : DateTime
+        - FechaTour        : DateTime
+        - Estado           : EstadoReservaEnum
+        - CantidadPersonas : int
+        - TotalPrecio      : double
+        ==
+        + PuedeModificarse()  : bool
+        + PuedeCancelarse()   : bool
+        + PuedeCompletarse()  : bool
+        ' Nota: Reservar/Cancelar/Pagar se orquestan desde ReservaFacade (Facade)
+        ' NotificacionReserva se delega a NotificacionObserver (Observer)
+    }
+
+    class Factura <<Entidad>> {
+        - Id            : Guid
+        - NumeroFactura : string
+        - FechaEmision  : DateTime
+        - ValorTotal    : decimal
+        - MetodoPago    : string
+        - Estado        : EstadoFacturaEnum
+        - Tipo          : TipoFacturaEnum
+        ==
+        + Anular()      : void
+        + EstaAnulada() : bool
+    }
+
+    ' ─── Vehículo y Conductor ───────────────────────────────
+
+    class Vehiculo <<Entidad>> {
+        - Id                 : Guid
+        - Placa              : string
+        - Marca              : string
+        + TipoVehiculo       : string
+        - Modelo             : string
+        - Anno               : int
+        - Color              : string
+        - CapacidadPasajeros : int
+        - Estado             : EstadoVehiculoEnum
+        ==
+        + EstaDisponible()               : bool
+        + ValidarCapacidad(cupos: int)   : bool
+        + TieneToursAsignados()          : bool
+        + CambiarEstado(idVehiculo: Guid,
+            nuevoEstado: string)         : void
+        + EliminarVehiculo(idVehiculo: Guid) : void
+    }
+    class Conductor <<Entidad>> {
+        - Id              : Guid
+        + NumeroLicencia  : string
+        + NombreCompleto  : string
+        + Telefono        : string
+        ==
+        + VisualizarInformacion(idConductor: Guid) : void
+    }
+
+    class Calificacion <<Entidad>> {
+        - Id         : Guid
+        - Estrellas  : int
+        - Resenna    : string
+        - FechaEnvio : DateTime
+    }
+
+    class PeriodoNoDisponibilidad <<Entidad>> {
+        - FechaInicio : DateTime
+        - FechaFin    : DateTime
+        ==
+        + ContieneFecha(fecha: DateTime) : bool
+    }
+
+
+    Turista        --|> Usuario
+    Agencia        --|> Usuario
+    Guia           --|> Usuario
+    Administrador  --|> Usuario
+
+    Agencia     "1"    *-- "0..*" Tour                    : Publica
+    Agencia     "1"    *-- "0..*" Vehiculo                : Posee
+    Agencia     "1"     o-- "0..*" Guia                   : Registra
+    Agencia     "1"    *-- "0..*" Conductor               : Emplea
+
+    Guia        "1"    --  "1"    CertificadoTurismo      : TieneVigente
+    Guia        "1"    *-- "0..*" PeriodoNoDisponibilidad  : Registra
+
+    Tour        "1"    --  "0..1" Guia                    : AsignadoA
+    Tour        "1"    --  "0..1" Vehiculo                : AsignadoA
+    Tour        "1"    --  "0..*" Reserva                 : TieneReservas
+
+    Vehiculo    "1"    --  "0..*" Conductor               : EsOperadoPor
+
+    Turista     "1"    --  "0..*" Reserva                 : Realiza
+    Turista     "1"    --  "0..*" Calificacion            : Emite
+
+    Reserva     "1"    *-- "1"    Factura                 : Genera
+    Reserva     "1"    --  "0..1" Calificacion            : EsCalificadaCon
+}
+package "Capa de Aplicacion — Patrones GoF" #F0FFF4 {
+
+    package "Factory Method" #EFF6FF {
+
+        note as NFactory
+            FACTORY METHOD
+            Desacopla AccountController de la
+            logica de construccion por actor.
+            OCP: nuevo actor = nueva fabrica.
+            [SIN CAMBIOS respecto a E2]
+        end note
+
+        interface IUsuarioFactory {
+            + Crear(datos: RegistroDto) : Usuario
+        }
+
+        class TuristaFactory <<Servicio>> {
+            + Crear(datos: RegistroDto) : Usuario
+        }
+
+        class AgenciaFactory <<Servicio>> {
+            + Crear(datos: RegistroDto) : Usuario
+        }
+
+        class GuiaFactory <<Servicio>> {
+            + Crear(datos: RegistroDto) : Usuario
+        }
+
+        class AccountController <<Controlador>> {
+            - _factory : IUsuarioFactory
+            ==
+            + RegistrarTurista(dto: RegistroDto) : IActionResult
+            + RegistrarAgencia(dto: RegistroDto) : IActionResult
+            ' RF-01, RF-02: VerificaciónNoExistenciaCuenta delegada a IUsuarioFactory
+        }
+
+        class AgenciaService <<Servicio>> {
+            - _guiaFactory : GuiaFactory
+            ==
+            + RegistrarGuia(dto: RegistroDto) : Guia
+            ' Consume GuiaFactory para HU-04 (RegistrarGuiaTuristico de Agencia)
+        }
+
+        TuristaFactory  ..|> IUsuarioFactory
+        AgenciaFactory  ..|> IUsuarioFactory
+        GuiaFactory     ..|> IUsuarioFactory
+        AccountController ..> IUsuarioFactory
+        AgenciaService    ..> GuiaFactory
+    }
+
+    package "Observer" #F0FFF4 {
+
+        note as NObserver
+            OBSERVER
+            RF-19: genera factura al confirmar
+            RN-18: anula factura al cancelar
+            RN-07: actualiza cupos
+            RN-17: desactiva tours al suspender agencia
+            [MEJORADO] CalificacionObserver añadido
+            para NotificacionReserva de E1
+        end note
+
+        interface IReservaObserver {
+            + OnReservaActualizada(evento: ReservaEventoDto) : void
+        }
+
+        class FacturaObserver <<Servicio>> {
+            - _facturaService : FacturaService
+            ==
+            + OnReservaActualizada(evento: ReservaEventoDto) : void
+        }
+
+        class NotificacionObserver <<Servicio>> {
+            ' Cubre: NotificacionReserva(idReserva, fechaTour, correoTurista)
+            ' de la Entrega 1 — RF-E1
+            ==
+            + OnReservaActualizada(evento: ReservaEventoDto) : void
+        }
+
+        class CupoObserver <<Servicio>> {
+            ==
+            + OnReservaActualizada(evento: ReservaEventoDto) : void
+        }
+
+        class TourObserver <<Servicio>> {
+            ==
+            + OnReservaActualizada(evento: ReservaEventoDto) : void
+        }
+
+        class CalificacionObserver <<Servicio>> {
+            ==
+            + OnReservaActualizada(evento: ReservaEventoDto) : void
+            ' Habilita Turista.GenerarReporteTour() al completarse la reserva
+        }
+
+        class ReservaService <<Servicio>> {
+            - _observers   : List<IReservaObserver>
+            - _reservaRepo : IReservaRepository
+            ==
+            + AgregarObserver(obs: IReservaObserver)         : void
+            + QuitarObserver(obs: IReservaObserver)          : void
+            + NotificarObservers(evt: ReservaEventoDto)      : void
+            + CambiarEstado(id: Guid, e: EstadoReservaEnum)  : void
+            + VisualizarReservas()                           : void
+        }
+
+        class AdministradorService <<Servicio>> {
+            - _tourObserver : TourObserver
+            ==
+            + SuspenderAgencia(agenciaId: Guid, motivo: string)  : void
+            + AprobarAgencia(agenciaId: Guid)                    : void
+            + SuspenderUsuario(idUsuario: Guid)                  : void
+            + EliminarUsuario(idUsuario: Guid, motivo: string)   : void
+            + SuspenderTour(idTour: Guid)                        : void
+            + VisualizarListaUsuarios()                          : void
+            ' Cubre funciones de Administrador de E1 (SuspenderUsuario, etc.)
+        }
+
+        FacturaObserver      ..|> IReservaObserver
+        NotificacionObserver ..|> IReservaObserver
+        CupoObserver         ..|> IReservaObserver
+        TourObserver         ..|> IReservaObserver
+        CalificacionObserver ..|> IReservaObserver
+        ReservaService "1"   o-- "0..*" IReservaObserver : notifica
+        AdministradorService ..> TourObserver              : usa / RN-17
+    }
+
+    package "Strategy" #FFFBEB {
+
+        note as NStrategy
+            STRATEGY — Contexto: AuthService
+            RN-20: acceso controlado por rol.
+            4 algoritmos de validacion por actor.
+            DIP: AuthService -> IAuthStrategy.
+            [SIN CAMBIOS respecto a E2]
+        end note
+
+        interface IAuthStrategy {
+            + Autenticar(datos: LoginDto) : ResultadoAuth
+        }
+
+        class TuristaAuthStrategy <<Servicio>> {
+            + Autenticar(datos: LoginDto) : ResultadoAuth
+        }
+
+        class AgenciaAuthStrategy <<Servicio>> {
+            + Autenticar(datos: LoginDto) : ResultadoAuth
+        }
+
+        class GuiaAuthStrategy <<Servicio>> {
+            + Autenticar(datos: LoginDto) : ResultadoAuth
+        }
+
+        class AdminAuthStrategy <<Servicio>> {
+            + Autenticar(datos: LoginDto) : ResultadoAuth
+        }
+
+        class AuthService <<Servicio>> {
+            - _strategy : IAuthStrategy
+            ==
+            + EstablecerEstrategia(s: IAuthStrategy) : void
+            + EjecutarAutenticacion(d: LoginDto)     : ResultadoAuth
+            ' Cubre IniciarSesion(Correo, Contrasenha) de E1
+        }
+
+        TuristaAuthStrategy ..|> IAuthStrategy
+        AgenciaAuthStrategy ..|> IAuthStrategy
+        GuiaAuthStrategy    ..|> IAuthStrategy
+        AdminAuthStrategy   ..|> IAuthStrategy
+        AuthService          ..>  IAuthStrategy
+    }
+
+    package "Facade" #FFF1F2 {
+
+        note as NFacade
+            FACADE — Subsistema de Reservas
+            RF-13, RF-14, RF-18, RF-19
+            RN-07 / RN-08
+            [MEJORADO] TourQueryService añadido como
+            subsistema interno para búsquedas de E1.
+            [MEJORADO] VehiculoService para asignación/validación.
+        end note
+
+        class DisponibilidadService <<Servicio>> {
+            ==
+            + HayCupos(tourId: Guid)                                      : bool
+            + TieneCruceHorario(turistaId: Guid, tourId: Guid)            : bool
+            + GuiaTieneConflicto(guiaId: Guid, tourId: Guid)              : bool
+        }
+
+        class CupoService <<Servicio>> {
+            ==
+            + Decrementar(tourId: Guid) : void
+            + Liberar(tourId: Guid)     : void
+        }
+
+        class FacturaService <<Servicio>> {
+            ==
+            + GenerarFactura(reservaId: Guid)                    : Factura
+            + AnularFactura(reservaId: Guid)                     : void
+            ' [MEJORADO] Incorporado de E1:
+            + DescargarFacturaPDF(idFactura: Guid)               : byte[]
+            + VisualizarFactura(idFactura: Guid)                 : Factura
+            + VisualizarTodasFacturas()                          : List<Factura>
+            + CambiarEstadoPagoFactura(idFactura: Guid,
+                nuevoEstado: string)                             : void
+        }
+
+        class ValidacionCancelacionService <<Servicio>> {
+            ==
+            + ValidarAnticipacion(reservaId: Guid) : bool
+        }
+
+        class TourQueryService <<Servicio>> {
+            ==
+            + VisualizarTodosServicios(activo: bool)              : List<Tour>
+            + BuscarPorPrecio(minimo: decimal, maximo: decimal)   : List<Tour>
+            + BuscarPorTipo(tipo: string)                         : List<Tour>
+            + VisualizarCantidadPersonasReservas(idTour: Guid)    : int
+        }
+        class VehiculoService <<Servicio>> {
+            ==
+            + RegistrarVehiculo(placa: string, tipo: string,
+                marca: string, modelo: string, color: string,
+                capacidad: int)                                   : Vehiculo
+            + AsignarATour(vehiculoId: Guid, tourId: Guid)        : void
+            + ValidarCapacidadParaTour(vehiculoId: Guid,
+                cantPersonas: int)                                : bool
+            + CambiarEstadoVehiculo(vehiculoId: Guid,
+                nuevoEstado: string)                              : void
+            + EliminarVehiculo(vehiculoId: Guid)                  : void
+        }
+
+        class ConductorService <<Servicio>> {
+            ==
+            + VisualizarInformacion(idConductor: Guid) : Conductor
+            + AsignarVehiculo(conductorId: Guid,
+                vehiculoId: Guid)                      : void
+        }
+
+        class ReservaFacade <<Servicio>> {
+            - _disponibilidad  : DisponibilidadService
+            - _cupos           : CupoService
+            - _factura         : FacturaService
+            - _validacion      : ValidacionCancelacionService
+            - _tourQuery       : TourQueryService
+            ==
+            + Confirmar(dto: ConfirmarReservaDto) : ResultadoReserva
+            + Cancelar(dto: CancelarReservaDto)   : ResultadoReserva
+            ' Orquesta: Reservar(), CancelarReserva(), PagarReserva() de E1
+        }
+
+        class ReservasController <<Controlador>> {
+            - _facade    : ReservaFacade
+            - _tourQuery : TourQueryService
+            ==
+            + ConfirmarReserva(dto: ConfirmarReservaDto)   : IActionResult
+            + CancelarReserva(dto: CancelarReservaDto)     : IActionResult
+            + ObtenerHistorial(turistaId: Guid)            : IActionResult
+            + BuscarToursPorPrecio(min: decimal, max: decimal) : IActionResult
+            + BuscarToursPorTipo(tipo: string)             : IActionResult
+        }
+
+        ReservaFacade ..> DisponibilidadService
+        ReservaFacade ..> CupoService
+        ReservaFacade ..> FacturaService
+        ReservaFacade ..> ValidacionCancelacionService
+        ReservaFacade ..> TourQueryService
+        ReservaFacade ..> ReservaService : invoca cambio de estado
+        ReservasController ..> ReservaFacade
+        ReservasController ..> TourQueryService
+    }
+
+    package "Builder" #FAF5FF {
+
+        note as NBuilder
+            BUILDER
+            3 actores, 3 reportes con estructura distinta.
+            RN-21: retencion solo en Agencia y Admin.
+            Cubre ConsultarReportes de Administrador (E1)
+            y GenerarReporteTour de Turista (E1).
+            [SIN CAMBIOS ESTRUCTURALES respecto a E2]
+        end note
+
+        class ReporteFacturacion <<Producto>> {
+            + Encabezado       : string
+            + Actor            : string
+            + PeriodoDesde     : DateTime
+            + PeriodoHasta     : DateTime
+            + LineasFactura    : List<LineaFactura>
+            + TotalBruto       : decimal
+            + TotalRetencion   : decimal
+            + TotalNeto        : decimal
+            + CantidadFacturas : int
+            + CantidadAnuladas : int
+        }
+
+        interface IReporteFacturacionBuilder {
+            + AgregarEncabezado(actor: string, desde: DateTime, hasta: DateTime) : void
+            + AgregarLineasFactura(facturas: List<Factura>)                      : void
+            + AgregarTotales()                                                   : void
+            + AgregarRetencion(porcentaje: decimal)                              : void
+            + Construir()                                                        : ReporteFacturacion
+        }
+
+        class ReporteTuristaBuilder <<Servicio>> {
+            - _reporte : ReporteFacturacion
+            ==
+            + AgregarEncabezado(actor: string, desde: DateTime, hasta: DateTime) : void
+            + AgregarLineasFactura(facturas: List<Factura>)                      : void
+            + AgregarTotales()                                                   : void
+            + AgregarRetencion(porcentaje: decimal)                              : void
+            + Construir()                                                        : ReporteFacturacion
+            ' Cubre GenerarReporteTour(idTour, contenido) de Turista (E1)
+        }
+
+        class ReporteAgenciaBuilder <<Servicio>> {
+            - _reporte             : ReporteFacturacion
+            - _porcentajeRetencion : decimal
+            ==
+            + AgregarEncabezado(actor: string, desde: DateTime, hasta: DateTime) : void
+            + AgregarLineasFactura(facturas: List<Factura>)                      : void
+            + AgregarTotales()                                                   : void
+            + AgregarRetencion(porcentaje: decimal)                              : void
+            + Construir()                                                        : ReporteFacturacion
+        }
+
+        class ReporteAdminBuilder <<Servicio>> {
+            - _reporte : ReporteFacturacion
+            ==
+            + AgregarEncabezado(actor: string, desde: DateTime, hasta: DateTime) : void
+            + AgregarLineasFactura(facturas: List<Factura>)                      : void
+            + AgregarTotales()                                                   : void
+            + AgregarRetencion(porcentaje: decimal)                              : void
+            + Construir()                                                        : ReporteFacturacion
+            ' Cubre ConsultarReportes() de Administrador (E1)
+        }
+
+        class ReporteDirector <<Director>> {
+            ==
+            + ConstruirReporte(
+                builder  : IReporteFacturacionBuilder,
+                facturas : List<Factura>,
+                desde    : DateTime,
+                hasta    : DateTime
+              ) : ReporteFacturacion
+        }
+
+        class FacturacionController <<Controlador>> {
+            - _director : ReporteDirector
+            ==
+            + ObtenerReporte(filtros: FiltroReporteDto) : IActionResult
+        }
+
+        ReporteTuristaBuilder ..|> IReporteFacturacionBuilder
+        ReporteAgenciaBuilder ..|> IReporteFacturacionBuilder
+        ReporteAdminBuilder   ..|> IReporteFacturacionBuilder
+        ReporteDirector        ..>  IReporteFacturacionBuilder
+        ReporteTuristaBuilder  ..>  ReporteFacturacion
+        ReporteAgenciaBuilder  ..>  ReporteFacturacion
+        ReporteAdminBuilder    ..>  ReporteFacturacion
+        FacturacionController  ..>  ReporteDirector
+    }
+}
+
+TuristaFactory ..> Turista           : crea / RF-01
+AgenciaFactory ..> Agencia           : crea / RF-02
+GuiaFactory    ..> Guia              : crea / RF-03
+GuiaFactory    ..> CertificadoTurismo : inicializa / RF-03
+
+FacturaObserver      ..> FacturaService  : delega
+CupoObserver         ..> Tour            : actualiza cupos / RN-07
+TourObserver         ..> Tour            : desactiva / RN-17
+CalificacionObserver ..> Calificacion    : habilita / RF-E1
+ReservaService       ..> Reserva         : gestiona ciclo de vida
+
+TuristaAuthStrategy ..> Turista       : autentica
+AgenciaAuthStrategy ..> Agencia       : autentica
+GuiaAuthStrategy    ..> Guia          : autentica
+
+ReservaFacade ..> Reserva    : coordina
+ReservaFacade ..> Tour       : verifica disponibilidad
+
+TourQueryService  ..> Tour      : consulta / BuscarPrecio,Tipo
+VehiculoService   ..> Vehiculo  : gestiona / RegistrarVehiculo
+VehiculoService   ..> Tour      : asigna vehiculo
+ConductorService  ..> Conductor : gestiona / VisualizarInfo
+
+ReporteAgenciaBuilder ..> Agencia : lee PorcentajeRetencion / RN-21
+FacturacionController  ..> Factura : consulta historial
+
+AgenciaService ..> ConductorService : puede delegar
+
+@enduml

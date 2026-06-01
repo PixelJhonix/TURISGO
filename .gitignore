@@ -1,0 +1,56 @@
+# ── .NET / Backend ──────────────────────────────────────
+[Bb]in/
+[Oo]bj/
+*.user
+*.suo
+.vs/
+*.swp
+*.userprefs
+*.DS_Store
+
+# dotnet publish
+publish/
+*.nupkg
+*.snupkg
+
+# EF Core migrations snapshot (keep migrations, skip local dbs)
+*.db
+*.mdf
+*.ldf
+
+# secrets
+back/TuristGo.API/appsettings.Development.json
+back/**/appsettings.Local.json
+secrets.json
+*.pfx
+*.key
+
+# ── Node / Frontend ──────────────────────────────────────
+Front/node_modules/
+Front/dist/
+Front/.cache/
+Front/.parcel-cache/
+*.tsbuildinfo
+
+# dotenv
+Front/.env
+Front/.env.*
+!Front/.env.example
+
+# logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# misc
+.yarn-integrity
+.npm
+.eslintcache
+.stylelintcache
+
+# ── IDE / OS ─────────────────────────────────────────────
+.vscode/
+.idea/
+Thumbs.db
+Desktop.ini

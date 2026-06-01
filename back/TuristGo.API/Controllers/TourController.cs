@@ -1,0 +1,127 @@
+﻿using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using TuristGo.API.DTOs;
+using TuristGo.Domain.Entities;
+using TuristGo.Domain.Enums;
+using TuristGo.Domain.Interfaces.Repositories;
+
+namespace TuristGo.API.Controllers;
+
+[ApiController]
+[Route("api/tour")]
+public class TourController(ITourRepository tourRepository, IMapper mapper) : ControllerBase
+{
+    // HU-21 CA-01: solo tours activos para el catálogo público
+    [AllowAnonymous]
+    [HttpGet]
+    public async Task<ActionResult<IEnumerable<TourResponseDTO>>> GetAll([FromQuery] string? category, [FromQuery] string? city)
+    {
+        var tours = await tourRepository.GetAllAsync();
+        var active = tours.Where(t => t.Status == TourStatus.Active);
+        if (!string.IsNullOrWhiteSpace(category))
+            active = active.Where(t => t.Category.Equals(category, StringComparison.OrdinalIgnoreCase));
+        if (!string.IsNullOrWhiteSpace(city))
+            active = active.Where(t => t.City.Equals(city, StringComparison.OrdinalIgnoreCase));
+        return Ok(mapper.Map<IEnumerable<TourResponseDTO>>(active));
+    }
+
+    [AllowAnonymous]
+    [HttpGet("{id:int}")]
+    public async Task<ActionResult<TourResponseDTO>> GetById(int id)
+    {
+        var tour = await tourRepository.GetByIdAsync(id);
+        return tour is null ? NotFound() : Ok(mapper.Map<TourResponseDTO>(tour));
+    }
+
+    // HU-17 CA-01: crear tour con código único, estado inicial Inactive
+    [Authorize(Roles = "Agency")]
+    [HttpPost]
+    public async Task<ActionResult> Create([FromBody] CreateTourRequestDTO dto)
+    {
+        var agencyId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
+        // TOUR-02: precio > 0
+        if (dto.Price <= 0) throw new ArgumentException("El precio debe ser mayor a 0.");
+        // HU-17 CA-04: cupos válidos
+        if (dto.TotalCapacity <= 0) throw new ArgumentException("Los cupos deben ser mayores a 0.");
+
+        var tour = new Tour
+        {
+            AgencyId = agencyId,
+            Code = $"TG-{DateTime.UtcNow:yyyyMMddHHmmss}-{new Random().Next(100, 999)}",
+            Name = dto.Name,
+            Description = dto.Description,
+            Category = dto.Category,
+            City = dto.City,
+            Price = dto.Price,
+            TotalCapacity = dto.TotalCapacity,
+            AvailableCapacity = dto.TotalCapacity,
+            StartTime = dto.StartTime,
+            DurationMinutes = dto.DurationMinutes,
+            MeetingPoint = dto.MeetingPoint,
+            Status = TourStatus.Inactive, // HU-17 CA-02: inactivo hasta tener guía
+        };
+        var created = await tourRepository.CreateAsync(tour);
+        return Ok(new { created.Id, created.Code, message = "Tour creado. Asigna un guía para activarlo." });
+    }
+
+    // HU-23 CA-01/02: editar sin reducir cupos bajo reservas existentes
+    [Authorize(Roles = "Agency")]
+    [HttpPut("{id:int}")]
+    public async Task<ActionResult> Update(int id, [FromBody] CreateTourRequestDTO dto)
+    {
+        var tour = await tourRepository.GetByIdAsync(id) ?? throw new KeyNotFoundException("Tour no encontrado");
+        var agencyId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
+        if (tour.AgencyId != agencyId) throw new UnauthorizedAccessException("No tienes permiso para editar este tour.");
+
+        // HU-23 CA-02: no reducir cupos por debajo de reservas activas
+        var occupiedSpots = tour.TotalCapacity - tour.AvailableCapacity;
+        if (dto.TotalCapacity < occupiedSpots)
+            throw new ArgumentException($"No puedes reducir los cupos a menos de {occupiedSpots} (reservas existentes).");
+
+        if (dto.Price <= 0) throw new ArgumentException("El precio debe ser mayor a 0.");
+
+        tour.Name = dto.Name;
+        tour.Description = dto.Description;
+        tour.Category = dto.Category;
+        tour.City = dto.City;
+        tour.Price = dto.Price;
+        tour.AvailableCapacity = tour.AvailableCapacity + (dto.TotalCapacity - tour.TotalCapacity);
+        tour.TotalCapacity = dto.TotalCapacity;
+        tour.StartTime = dto.StartTime;
+        tour.DurationMinutes = dto.DurationMinutes;
+        tour.MeetingPoint = dto.MeetingPoint;
+
+        await tourRepository.UpdateAsync(tour);
+        return NoContent();
+    }
+
+    // HU-25 CA-01/02: desactivar sólo si no hay reservas futuras Confirmed
+    [Authorize(Roles = "Agency,Admin")]
+    [HttpPatch("{id:int}/deactivate")]
+    public async Task<ActionResult> Deactivate(int id, [FromBody] DeactivateTourRequestDTO dto)
+    {
+        var tour = await tourRepository.GetByIdAsync(id) ?? throw new KeyNotFoundException("Tour no encontrado");
+        var hasFutureReservations = await tourRepository.HasFutureConfirmedReservationsAsync(id);
+        if (hasFutureReservations)
+            throw new InvalidOperationException("No puedes desactivar un tour con reservas confirmadas futuras.");
+
+        tour.Status = TourStatus.Inactive;
+        tour.DeactivationReason = dto.Reason;
+        await tourRepository.UpdateAsync(tour);
+        return NoContent();
+    }
+
+    [HttpPost("{id:int}/guides")] public ActionResult AssignGuide(int id) => NoContent();
+    [HttpPost("{id:int}/vehicle")] public ActionResult AssignVehicle(int id) => NoContent();
+
+    [HttpPatch("{id:int}/status")]
+    public async Task<ActionResult> SetStatus(int id, [FromBody] TourStatusUpdateRequestDTO dto)
+    {
+        var tour = await tourRepository.GetByIdAsync(id);
+        if (tour is null) return NotFound();
+        tour.Status = dto.Status is "Active" or "Activo" ? TourStatus.Active : TourStatus.Inactive;
+        await tourRepository.UpdateAsync(tour);
+        return NoContent();
+    }
+}
