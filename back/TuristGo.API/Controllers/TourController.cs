@@ -112,8 +112,65 @@ public class TourController(ITourRepository tourRepository, IMapper mapper) : Co
         return NoContent();
     }
 
-    [HttpPost("{id:int}/guides")] public ActionResult AssignGuide(int id) => NoContent();
-    [HttpPost("{id:int}/vehicle")] public ActionResult AssignVehicle(int id) => NoContent();
+    // HU-19 CA-01–05: asignar guía con todas las validaciones GoF
+    [Authorize(Roles = "Agency")]
+    [HttpPost("{id:int}/guides")]
+    public async Task<ActionResult> AssignGuide(int id, [FromBody] AssignGuideRequestDTO dto)
+    {
+        var tour = await tourRepository.GetByIdAsync(id) ?? throw new KeyNotFoundException("Tour no encontrado.");
+        var agencyId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
+        if (tour.AgencyId != agencyId) throw new UnauthorizedAccessException("El tour no pertenece a tu agencia.");
+
+        var guide = await tourRepository.GetGuideForAssignmentAsync(dto.GuideId, tour.StartTime, tour.DurationMinutes)
+            ?? throw new KeyNotFoundException("Guía no encontrado.");
+
+        // GUIDE-01: certificado vigente
+        if (guide.CertificateExpiryDate <= DateTime.UtcNow)
+            throw new InvalidOperationException("El guía tiene el certificado vencido y no puede ser asignado.");
+
+        // GUIDE-03: tour con menos de 24h
+        if (tour.StartTime <= DateTime.UtcNow.AddHours(24))
+            throw new InvalidOperationException("No puedes asignar un guía a un tour que empieza en menos de 24 horas.");
+
+        // GUIDE-04: cruce horario (chequeo de otros tours del guía el mismo día)
+        var hasConflict = await tourRepository.GuideHasScheduleConflictAsync(dto.GuideId, id, tour.StartTime, tour.DurationMinutes);
+        if (hasConflict)
+            throw new InvalidOperationException("El guía tiene un conflicto de horario con otro tour asignado.");
+
+        tour.GuideId = dto.GuideId;
+        // Tour puede activarse si también tiene vehículo (PuedeActivarse)
+        if (tour.VehicleId.HasValue) tour.Status = TourStatus.Active;
+        await tourRepository.UpdateAsync(tour);
+        return Ok(new { message = "Guía asignado.", tourStatus = tour.Status.ToString() });
+    }
+
+    // HU-28B CA-01–04: asignar vehículo con validaciones VEHICLE-01/02
+    [Authorize(Roles = "Agency")]
+    [HttpPost("{id:int}/vehicle")]
+    public async Task<ActionResult> AssignVehicle(int id, [FromBody] AssignVehicleRequestDTO dto)
+    {
+        var tour = await tourRepository.GetByIdAsync(id) ?? throw new KeyNotFoundException("Tour no encontrado.");
+        var agencyId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
+        if (tour.AgencyId != agencyId) throw new UnauthorizedAccessException("El tour no pertenece a tu agencia.");
+
+        var vehicle = await tourRepository.GetVehicleForAssignmentAsync(dto.VehicleId)
+            ?? throw new KeyNotFoundException("Vehículo no encontrado.");
+
+        // VEHICLE-01: debe estar disponible
+        if (vehicle.Status != VehicleStatus.Available)
+            throw new InvalidOperationException("El vehículo no está disponible (está asignado o en mantenimiento).");
+
+        // VEHICLE-02: capacidad >= cupos del tour
+        if (vehicle.PassengerCapacity < tour.TotalCapacity)
+            throw new InvalidOperationException($"El vehículo tiene capacidad para {vehicle.PassengerCapacity} pasajeros pero el tour requiere {tour.TotalCapacity}.");
+
+        tour.VehicleId = dto.VehicleId;
+        vehicle.Status = VehicleStatus.Assigned;
+        if (tour.GuideId.HasValue) tour.Status = TourStatus.Active;
+        await tourRepository.UpdateAsync(tour);
+        await tourRepository.UpdateVehicleAsync(vehicle);
+        return Ok(new { message = "Vehículo asignado.", tourStatus = tour.Status.ToString() });
+    }
 
     [HttpPatch("{id:int}/status")]
     public async Task<ActionResult> SetStatus(int id, [FromBody] TourStatusUpdateRequestDTO dto)

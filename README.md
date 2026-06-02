@@ -1,18 +1,108 @@
-# TuristGo — Sistema Integral de Turismo (Medellín)
+# TuristGo — Sistema de Turismo (Medellín)
 
 Plataforma full-stack: backend ASP.NET Core 10 + frontend React/Vite.
 
-## Requisitos previos
+---
 
-| Herramienta | Versión mínima |
-|-------------|----------------|
-| [.NET SDK](https://dotnet.microsoft.com/download) | 10.0 |
-| [Node.js](https://nodejs.org/) | 20 LTS |
-| SQL Server LocalDB | `(localdb)\mssqllocaldb` (incluido con Visual Studio) |
+## ¿Qué necesito para ejecutarlo?
 
-Opcional: Visual Studio 2022+ con carga de trabajo **ASP.NET y desarrollo web**.
+Instala estas 3 herramientas. Si ya las tienes, salta directo a "Cómo ejecutar".
 
-> **Windows / PowerShell:** no uses `open` ni `run` (son de macOS o de otros entornos). Para el script usa `.\start-dev.ps1` (ver abajo). Si `npm` no se reconoce, instala [Node.js LTS](https://nodejs.org/) y **reinicia la terminal**.
+| Herramienta | Para qué sirve | Descarga |
+|---|---|---|
+| **.NET 10 SDK** | Ejecutar el servidor (backend) | [dotnet.microsoft.com/download](https://dotnet.microsoft.com/download) |
+| **Node.js 20 LTS** | Ejecutar la interfaz web (frontend) | [nodejs.org](https://nodejs.org/) — botón "LTS" |
+| **SQL Server LocalDB** | Base de datos local | Incluido con Visual Studio; o descarga [SQL Server Express](https://www.microsoft.com/es-es/sql-server/sql-server-downloads) |
+
+> **Importante:** después de instalar Node.js, **cierra y abre la terminal** para que el comando `npm` funcione.
+
+---
+
+## Cómo ejecutar el proyecto
+
+### Opción A — Script automático (más fácil)
+
+Abre PowerShell en la carpeta `TuristGo` y ejecuta:
+
+```powershell
+.\start-dev.ps1
+```
+
+Si aparece un error de permisos:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\start-dev.ps1
+```
+
+Esto arranca el backend y el frontend automáticamente.
+
+---
+
+### Opción B — Dos terminales por separado (más control)
+
+**Terminal 1 — Backend** (servidor):
+
+```powershell
+cd TuristGo\back
+dotnet run --project TuristGo.API
+```
+
+Espera hasta ver `Now listening on: http://localhost:5142`.  
+La primera vez crea la base de datos y los datos de prueba automáticamente. No hagas nada más.
+
+**Terminal 2 — Frontend** (interfaz web):
+
+```powershell
+cd TuristGo\Front
+
+# Solo la primera vez — instala las librerías necesarias (puede tardar 1-2 minutos):
+npm install
+
+# Crea el archivo de configuración copiando el ejemplo:
+copy .env.example .env
+
+# Inicia la interfaz:
+npm run dev
+```
+
+Abre el navegador en **http://localhost:5173**
+
+---
+
+## Usuarios de prueba (ya creados automáticamente)
+
+| Rol | Email | Contraseña |
+|---|---|---|
+| Administrador | admin@turistgo.com | Admin123! |
+| Agencia 1 | andes@turistgo.com | Agency123! |
+| Agencia 2 | paisa@turistgo.com | Agency123! |
+| Turista | tourist@turistgo.com | Tourist123! |
+| Turista 2 | maria@turistgo.com | Tourist123! |
+| Guía 1 (Andes) | guide1.2@turistgo.com | Guide123! |
+| Guía 1 (Paisa) | guide1.4@turistgo.com | Guide123! |
+
+> Los IDs de los guías (el número después del punto) dependen del orden en que se crean las agencias. Si la base de datos es nueva, las agencias reciben IDs 2 y 4 (el ID 1 es el admin). Si los emails de guía no funcionan, prueba con `guide1.3@turistgo.com` o revisa los IDs en Swagger o SQL Server.
+
+---
+
+## URLs del sistema en desarrollo
+
+| ¿Qué? | Dirección |
+|---|---|
+| Interfaz web (frontend) | http://localhost:5173 |
+| Servidor (backend) | http://localhost:5142 |
+| Swagger (probar API) | http://localhost:5142/swagger |
+
+---
+
+## Cómo probar la API con Swagger
+
+1. Ve a http://localhost:5142/swagger
+2. Expande `POST /api/auth/login`, haz clic en **Try it out**
+3. Pega: `{ "email": "tourist@turistgo.com", "password": "Tourist123!" }`
+4. Ejecuta y copia el valor de `token` de la respuesta
+5. Haz clic en **Authorize** (arriba a la derecha) → escribe `Bearer ` + el token
+6. Ahora puedes probar cualquier endpoint protegido
 
 ---
 
@@ -20,191 +110,43 @@ Opcional: Visual Studio 2022+ con carga de trabajo **ASP.NET y desarrollo web**.
 
 ```
 TuristGo/
-├── README.md          ← este archivo (guía global)
-├── start-dev.ps1      ← arranque rápido API + frontend
-├── back/              ← solución .NET (API, Domain, DataAccess)
-│   └── TuristGo.slnx
-└── Front/             ← React + Vite (puerto 5173)
+├── back/                  ← Servidor (lógica de negocio + base de datos)
+│   ├── TuristGo.API/      ← Endpoints REST, autenticación JWT
+│   ├── TuristGo.Domain/   ← Reglas de negocio, patrones de diseño (GoF)
+│   └── TuristGo.DataAccess/ ← Repositorios y migraciones EF Core
+└── Front/                 ← Interfaz web
+    └── src/app/
+        ├── pages/         ← Pantallas por rol (admin, agencia, guía, turista)
+        ├── components/    ← Componentes reutilizables
+        └── lib/api/       ← Conexiones al backend
 ```
-
----
-
-## Paso a paso: ejecutar el software completo
-
-### Opción A — Visual Studio (recomendada, un solo F5)
-
-1. Abre la solución [`back/TuristGo.slnx`](back/TuristGo.slnx).
-2. Establece **TuristGo.API** como proyecto de inicio (clic derecho → *Set as Startup Project*).
-3. En el selector de perfiles de depuración, elige **https** o **http**.
-4. La primera vez, instala dependencias del frontend:
-   ```powershell
-   cd Front
-   npm install
-   ```
-5. Pulsa **F5** (Start Debugging).
-   - La API arranca en `http://localhost:5142` (y `https://localhost:7251` si usas perfil https).
-   - **SpaProxy** lanza automáticamente `npm run dev` en `Front/`.
-   - El navegador abre el **frontend** en `http://localhost:5173`.
-6. Para Swagger: navega a `http://localhost:5142/swagger` (o usa la redirección desde `/`).
-7. Para ver la base de datos en Visual Studio:
-   - *View* → *SQL Server Object Explorer*
-   - `(localdb)\mssqllocaldb` → *Databases* → **TuristGoDb**
-
-> Perfil de solución alternativo: en VS 17.12+ puedes elegir **TuristGo Full Stack** si aparece (archivo [`back/TuristGo.slnLaunch`](back/TuristGo.slnLaunch)).
-
----
-
-### Opción B — Script PowerShell (dos procesos, un comando)
-
-Desde la carpeta `TuristGo`:
-
-```powershell
-cd C:\repositories\TuristGo
-.\start-dev.ps1
-```
-
-Si PowerShell bloquea scripts:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\start-dev.ps1
-```
-
-Abre el frontend y Swagger en el navegador. La API aplica migraciones y datos seed al iniciar.
-
-**Solo backend** (si aún no tienes Node/npm):
-
-```powershell
-cd back
-dotnet run --project TuristGo.API
-```
-
-Swagger: http://localhost:5142/swagger
-
----
-
-### Opción C — Terminales separadas (control manual)
-
-**Terminal 1 — Backend**
-
-```powershell
-cd TuristGo\back
-dotnet restore
-dotnet run --project TuristGo.API
-```
-
-**Terminal 2 — Frontend**
-
-```powershell
-cd TuristGo\Front
-npm install
-npm run dev
-```
-
-Abre:
-
-- Frontend: http://localhost:5173  
-- Swagger: http://localhost:5142/swagger  
-
----
-
-## Configuración
-
-### Base de datos
-
-Cadena por defecto en [`back/TuristGo.API/appsettings.json`](back/TuristGo.API/appsettings.json):
-
-```json
-"DefaultConnection": "Server=(localdb)\\mssqllocaldb;Database=TuristGoDb;Trusted_Connection=true;TrustServerCertificate=true;"
-```
-
-Si LocalDB no está disponible, usa SQL Express y actualiza la cadena, por ejemplo:
-
-```json
-"Server=localhost\\SQLEXPRESS;Database=TuristGoDb;Trusted_Connection=true;TrustServerCertificate=true;"
-```
-
-### Migraciones EF Core (manual, si hace falta)
-
-```powershell
-cd TuristGo\back
-dotnet ef migrations add InitialCreate --project TuristGo.DataAccess --startup-project TuristGo.API
-dotnet ef database update --project TuristGo.DataAccess --startup-project TuristGo.API
-```
-
-> Al ejecutar la API, `MigrateAsync()` y el seeder se aplican automáticamente en Development.
-
-### Frontend — URL de la API
-
-Archivo [`Front/.env`](Front/.env) (copiar desde [`.env.example`](Front/.env.example)):
-
-```env
-VITE_API_URL=http://localhost:5142/api
-```
-
----
-
-## Credenciales de prueba (seed)
-
-| Rol | Email | Contraseña |
-|-----|-------|------------|
-| Admin | admin@turistgo.com | Admin123! |
-| Agencia 1 | andes@turistgo.com | Agency123! |
-| Agencia 2 | paisa@turistgo.com | Agency123! |
-| Turista | tourist@turistgo.com | Tourist123! |
-| Guía (agencia Andes) | guide1.2@turistgo.com | Guide123! |
-| Guía (agencia Paisa) | guide1.4@turistgo.com | Guide123! |
-
-> Los emails de guías siguen el patrón `guide{n}.{agencyId}@turistgo.com` según el ID asignado al guardar las agencias.
-
----
-
-## URLs de desarrollo
-
-| Servicio | URL |
-|----------|-----|
-| Frontend | http://localhost:5173 |
-| API HTTP | http://localhost:5142 |
-| API HTTPS | https://localhost:7251 |
-| Swagger | http://localhost:5142/swagger |
-| OpenAPI JSON | http://localhost:5142/swagger/v1/swagger.json |
-
----
-
-## Probar la API con JWT (Swagger)
-
-1. `POST /api/auth/login` con body `{ "email": "tourist@turistgo.com", "password": "Tourist123!" }`.
-2. Copia el `token` de la respuesta.
-3. Clic en **Authorize** → `Bearer {token}`.
-4. Prueba endpoints protegidos (por ejemplo `GET /api/auth/me`).
-
----
-
-## Flujo de demostración sugerido
-
-1. Abrir frontend → explorar catálogo de tours (datos del seed).
-2. Iniciar sesión como turista → reservar un tour activo.
-3. Ver factura generada (`GET /api/invoice` con token).
-4. Iniciar sesión como admin → aprobar/suspender agencias en Swagger.
-5. Revisar tablas en SQL Server Object Explorer.
 
 ---
 
 ## Solución de problemas
 
-| Problema | Qué hacer |
-|----------|-----------|
-| Error `Role` / `UserRole` al iniciar | Asegúrate de tener el último código (discriminador TPH con enum). Rebuild solution. |
-| No se crea la BD | Verifica LocalDB; ejecuta `dotnet ef database update` manualmente. |
-| Frontend no carga datos | Comprueba que la API esté en 5142 y `Front/.env` apunte a `http://localhost:5142/api`. |
-| `npm` no se reconoce | Instala Node.js LTS desde https://nodejs.org/ (opción *Add to PATH*). Cierra y abre PowerShell. Verifica con `node -v` y `npm -v`. |
-| `open` / `run` no funcionan | En Windows usa `.\start-dev.ps1`, no `open` ni `run`. |
-| `%1 is not a valid Win32 application` al usar el script | El script ya usa `npm.cmd` (no `npm.ps1`). Actualiza `start-dev.ps1` y vuelve a ejecutar. |
-| SpaProxy no inicia Vite | Ejecuta `npm install` en `Front/`; verifica Node en PATH. Usa `start-dev.ps1` como alternativa. |
-| CORS | Orígenes permitidos: 5173, 3000, 4200 (configurados en `Program.cs`). |
+| Problema | Solución |
+|---|---|
+| `npm` no se reconoce | Instala Node.js LTS. Cierra y abre la terminal. Verifica con `node -v` |
+| La base de datos no se crea | Verifica que LocalDB esté instalado: ejecuta `sqllocaldb info` en PowerShell |
+| El frontend no muestra datos | Asegúrate de que el backend esté corriendo y que `Front/.env` tenga `VITE_API_URL=http://localhost:5142/api` |
+| Puerto ya en uso | Cambia el puerto en `back/TuristGo.API/Properties/launchSettings.json` y actualiza `Front/.env` |
+| Error CORS | Los orígenes permitidos son: 5173, 3000, 4200. Si usas otro puerto, agrégalo en `Program.cs` |
+| `%1 is not a valid Win32 application` con el script | El script usa `npm.cmd`. Si el error persiste, ejecuta el backend y frontend por separado (Opción B) |
+
+---
+
+## Tecnologías
+
+- **Backend:** ASP.NET Core 10, Entity Framework Core, SQL Server LocalDB, JWT, AutoMapper
+- **Frontend:** React 18, TypeScript, Vite, Tailwind CSS, shadcn/ui, React Router 7
+- **Patrones GoF:** Factory Method, Strategy, Observer, Facade, Builder
+- **Arquitectura:** N capas separadas en proyectos distintos
 
 ---
 
 ## Documentación adicional
 
-- Plan de arquitectura: [`turistgo_backend_plan_1a99b470.plan.md`](turistgo_backend_plan_1a99b470.plan.md)
-- Detalles técnicos del API: [`back/README.md`](back/README.md)
+- Plan de fases y auditoría: [MASTER_PLAN.md](MASTER_PLAN.md)
+- Diagrama de clases: [TuristGo_Merge_Completo.puml](TuristGo_Merge_Completo.puml)
+- Detalle técnico del backend: [back/README.md](back/README.md)
