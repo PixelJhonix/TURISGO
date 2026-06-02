@@ -15,6 +15,10 @@ public class ReservationFacade(
     {
         var tour = await tourRepository.GetByIdAsync(request.TourId) ?? throw new KeyNotFoundException("Tour no encontrado");
 
+        // HU-35 CA-01: no reservar tours con fecha pasada
+        if (request.TourDate < DateOnly.FromDateTime(DateTime.UtcNow))
+            throw new InvalidOperationException("No puedes reservar un tour cuya fecha ya pasó.");
+
         // HU-35 CA-02: sin cupos
         if (tour.AvailableCapacity <= 0) throw new InvalidOperationException("Sin cupos disponibles para este tour.");
 

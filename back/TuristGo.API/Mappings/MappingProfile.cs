@@ -10,7 +10,15 @@ public class MappingProfile : Profile
     {
         CreateMap<Tour, TourResponseDTO>()
             .ForCtorParam("Status", opt => opt.MapFrom(src => src.Status.ToString()))
-            // A.6: nuevos campos — ImagePlaceholder es null hasta que se implemente upload
-            .ForCtorParam("ImagePlaceholder", opt => opt.MapFrom(src => (string?)null));
+            .ForCtorParam("ImagePlaceholder", opt => opt.MapFrom(src => GetImageByCategory(src.Category)));
     }
+
+    private static string? GetImageByCategory(string category) => category switch
+    {
+        "Cultura"      => "https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=800&q=80",
+        "Aventura"     => "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80",
+        "Gastronomía"  => "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&q=80",
+        "Naturaleza"   => "https://images.unsplash.com/photo-1448375240586-882707db888b?w=800&q=80",
+        _              => null,
+    };
 }

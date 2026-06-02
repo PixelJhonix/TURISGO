@@ -1,4 +1,4 @@
-import { Link, Navigate } from 'react-router';
+import { Link, Navigate, useNavigate } from 'react-router';
 import { useState, useEffect } from 'react';
 import { Calendar, Check, FileText, Package } from 'lucide-react';
 import { Navbar } from '../../components/Navbar';
@@ -14,6 +14,7 @@ import type { Tour } from '../../lib/mockData';
 
 export function TouristDashboard() {
   const { user, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   const [reservations, setReservations] = useState<ApiReservation[]>([]);
   const [invoices, setInvoices] = useState<ApiInvoiceTourist[]>([]);
   const [tours, setTours] = useState<Tour[]>([]);
@@ -108,7 +109,13 @@ export function TouristDashboard() {
           <h2 className="text-2xl font-semibold mb-6">Tours recomendados para ti</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {recommendedTours.map((tour) => (
-              <TourCard key={tour.id} tour={tour} showReserveButton linkTo={`/tours/${tour.id}`} />
+              <TourCard
+                key={tour.id}
+                tour={tour}
+                showReserveButton
+                linkTo={`/tours/${tour.id}`}
+                onReserve={(id) => navigate(`/tours/${id}`)}
+              />
             ))}
           </div>
         </div>

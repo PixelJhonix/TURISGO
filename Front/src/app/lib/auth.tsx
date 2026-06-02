@@ -8,21 +8,18 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   isAuthenticated: boolean;
+  isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-
-  useEffect(() => {
-    const storedUser = localStorage.getItem('turistgo_user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-  }, []);
+  const storedUser = localStorage.getItem('turistgo_user');
+  const [user, setUser] = useState<User | null>(storedUser ? JSON.parse(storedUser) : null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+    setIsLoading(true);
     try {
       const result = await loginApi(email, password);
       setUser(result.user);
@@ -30,6 +27,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { success: true, error: result.alert };
     } catch (error) {
       return { success: false, error: error instanceof Error ? error.message : 'Error al iniciar sesión' };
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -40,7 +39,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user, isLoading }}>
       {children}
     </AuthContext.Provider>
   );

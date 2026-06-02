@@ -172,6 +172,7 @@ public class TourController(ITourRepository tourRepository, IMapper mapper) : Co
         return Ok(new { message = "Vehículo asignado.", tourStatus = tour.Status.ToString() });
     }
 
+    [Authorize(Roles = "Agency")]
     [HttpPatch("{id:int}/status")]
     public async Task<ActionResult> SetStatus(int id, [FromBody] TourStatusUpdateRequestDTO dto)
     {

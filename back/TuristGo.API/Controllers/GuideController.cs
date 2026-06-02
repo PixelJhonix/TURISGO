@@ -64,6 +64,10 @@ public class GuideController(
     [HttpDelete("unavailability/{id:int}")]
     public async Task<ActionResult> DeleteUnavailability(int id)
     {
+        var guideId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
+        var item = await unavailabilityRepo.GetByIdAsync(id);
+        if (item is null) return NotFound();
+        if (item.GuideId != guideId) return Forbid();
         await unavailabilityRepo.DeleteAsync(id);
         return NoContent();
     }
