@@ -7,12 +7,17 @@ import { Button } from '../../components/ui/button';
 import { StatusBadge } from '../../components/StatusBadge';
 import { useAuth } from '../../lib/auth';
 import { type ApiAssignedTour, getMyToursAsGuideApi } from '../../lib/api/services/guideService';
+import { apiClient } from '../../lib/api/client';
+
+type TouristInTour = { id: number; touristName: string; tourDate: string };
 
 export function GuideToursPage() {
   const { user, isAuthenticated } = useAuth();
   const [tours, setTours] = useState<ApiAssignedTour[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTour, setSelectedTour] = useState<ApiAssignedTour | null>(null);
+  const [touristList, setTouristList] = useState<TouristInTour[]>([]);
+  const [loadingTourists, setLoadingTourists] = useState(false);
 
   if (!isAuthenticated || user?.role !== 'Guía') return <Navigate to="/login" replace />;
 
@@ -77,7 +82,19 @@ export function GuideToursPage() {
                 )}
 
                 <div className="flex gap-2 mt-4">
-                  <Button size="sm" variant="outline" onClick={() => setSelectedTour(tour)}>
+                  <Button size="sm" variant="outline" onClick={async () => {
+                    setSelectedTour(tour);
+                    setTouristList([]);
+                    setLoadingTourists(true);
+                    try {
+                      const data = await apiClient.get<TouristInTour[]>(`/guide/tours/${tour.id}/tourists`);
+                      setTouristList(data);
+                    } catch {
+                      toast.error('No se pudo cargar el listado de turistas');
+                    } finally {
+                      setLoadingTourists(false);
+                    }
+                  }}>
                     <Users className="h-4 w-4 mr-1" />Ver turistas
                   </Button>
                 </div>
@@ -98,10 +115,29 @@ export function GuideToursPage() {
               <button onClick={() => setSelectedTour(null)}><X className="h-5 w-5 text-gray-400" /></button>
             </div>
             <div className="px-6 py-5">
-              <p className="text-sm text-gray-600 mb-2">
+              <p className="text-sm text-gray-600 mb-3">
                 Cupos ocupados: <strong>{selectedTour.totalCapacity - selectedTour.availableCapacity}</strong> / {selectedTour.totalCapacity}
               </p>
-              <p className="text-xs text-gray-500">El listado detallado de turistas estará disponible en la Fase D.</p>
+              {loadingTourists ? (
+                <p className="text-sm text-gray-500">Cargando turistas...</p>
+              ) : touristList.length === 0 ? (
+                <p className="text-sm text-gray-500">No hay turistas confirmados para este tour.</p>
+              ) : (
+                <table className="w-full text-sm">
+                  <thead><tr className="border-b">
+                    <th className="text-left py-1 font-medium text-gray-600">Nombre</th>
+                    <th className="text-left py-1 font-medium text-gray-600">Fecha reservada</th>
+                  </tr></thead>
+                  <tbody>
+                    {touristList.map((t) => (
+                      <tr key={t.id} className="border-b last:border-0">
+                        <td className="py-2">{t.touristName}</td>
+                        <td className="py-2 text-gray-500">{new Date(t.tourDate).toLocaleDateString('es-CO')}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
             <div className="px-6 py-4 bg-gray-50 border-t flex justify-end">
               <Button onClick={() => setSelectedTour(null)}>Cerrar</Button>

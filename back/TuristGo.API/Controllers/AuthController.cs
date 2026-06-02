@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Cryptography;
 using TuristGo.API.DTOs;
 using TuristGo.Domain.Entities;
 using TuristGo.Domain.Enums;
@@ -54,4 +55,48 @@ public class AuthController(AuthService authService, Dictionary<UserRole, IUsuar
         email = User.FindFirst("Email")?.Value,
         role = User.FindFirst("Role")?.Value,
     });
+
+    // HU-15 CA-01–04: solicitar recuperación de contraseña (sin SMTP — token en JSON para dev)
+    [HttpPost("forgot-password")]
+    [AllowAnonymous]
+    public async Task<ActionResult<ForgotPasswordResponseDTO>> ForgotPassword([FromBody] ForgotPasswordRequestDTO dto)
+    {
+        var user = await userRepo.GetByEmailAsync(dto.Email);
+        // CA-04: respuesta idéntica si el email no existe (no revelar datos)
+        if (user is null)
+            return Ok(new ForgotPasswordResponseDTO("", "", "Si el correo está registrado recibirás instrucciones."));
+
+        var token = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
+        user.PasswordResetToken = HashHelper.Sha256(token);
+        user.PasswordResetTokenExpiry = DateTime.UtcNow.AddMinutes(30);
+        await userStore.UpdateAsync(user);
+
+        var expiresAt = user.PasswordResetTokenExpiry.Value.ToString("yyyy-MM-ddTHH:mm:ssZ");
+        return Ok(new ForgotPasswordResponseDTO(token, expiresAt, "Token generado. En producción se enviaría por correo."));
+    }
+
+    // HU-15 CA-02/03/05: validar token y establecer nueva contraseña
+    [HttpPost("reset-password")]
+    [AllowAnonymous]
+    public async Task<ActionResult> ResetPassword([FromBody] ResetPasswordRequestDTO dto)
+    {
+        var allUsers = await userStore.GetAllAsync();
+        var user = allUsers.FirstOrDefault(u =>
+            u.PasswordResetTokenExpiry > DateTime.UtcNow &&
+            u.PasswordResetToken == HashHelper.Sha256(dto.Token));
+
+        if (user is null)
+            throw new ArgumentException("El enlace de recuperación es inválido o ha expirado.");
+
+        if (dto.NewPassword.Length < 8 ||
+            !dto.NewPassword.Any(char.IsUpper) ||
+            !dto.NewPassword.Any(char.IsDigit))
+            throw new ArgumentException("La contraseña debe tener al menos 8 caracteres, una mayúscula y un número.");
+
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
+        user.PasswordResetToken = null;
+        user.PasswordResetTokenExpiry = null;
+        await userStore.UpdateAsync(user);
+        return Ok(new { message = "Contraseña actualizada correctamente." });
+    }
 }

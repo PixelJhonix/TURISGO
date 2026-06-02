@@ -41,6 +41,26 @@ public class InvoiceRepository(TuristGoDbContext context) : GenericRepository<In
         return await query.OrderByDescending(i => i.CreatedAt).ToListAsync();
     }
 
+    // HU-47: factura manual de agencia
+    public async Task<Invoice> CreateManualAsync(int agencyId, int reservationId, decimal amount, string description)
+    {
+        var reservation = await context.Reservations
+            .Include(r => r.Tour)
+            .FirstOrDefaultAsync(r => r.Id == reservationId && r.Tour!.AgencyId == agencyId)
+            ?? throw new UnauthorizedAccessException("La reserva no pertenece a esta agencia.");
+        var invoice = new Invoice
+        {
+            ReservationId = reservationId,
+            Amount = amount,
+            Status = InvoiceStatus.Active,
+            IsManual = true,
+            ManualDescription = description,
+        };
+        context.Invoices.Add(invoice);
+        await context.SaveChangesAsync();
+        return invoice;
+    }
+
     // HU-50: reservas completadas en el período
     public async Task<int> CountCompletedReservationsByPeriodAsync(DateOnly start, DateOnly end)
         => await context.Reservations.CountAsync(r =>

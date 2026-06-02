@@ -116,6 +116,27 @@ public class ReservationFacade(
         return reservation;
     }
 
+    // HU-43: cambio de fecha de reserva (>24h antes de la fecha original, nueva fecha futura)
+    public async Task<Reservation> RescheduleBookingAsync(int reservationId, int touristId, DateOnly newDate)
+    {
+        var reservation = await reservationRepository.GetByIdAsync(reservationId)
+            ?? throw new KeyNotFoundException("Reserva no encontrada.");
+        if (reservation.TouristId != touristId)
+            throw new UnauthorizedAccessException("La reserva no pertenece a este usuario.");
+        if (reservation.Status != ReservationStatus.Confirmed)
+            throw new InvalidOperationException("Solo se pueden reprogramar reservas confirmadas.");
+
+        var originalStart = reservation.TourDate.ToDateTime(reservation.StartTime ?? TimeOnly.MinValue);
+        if (originalStart <= DateTime.UtcNow.AddHours(24))
+            throw new InvalidOperationException("Solo puedes cambiar la fecha con más de 24 horas de anticipación.");
+        if (newDate <= DateOnly.FromDateTime(DateTime.UtcNow))
+            throw new InvalidOperationException("La nueva fecha debe ser futura.");
+
+        reservation.TourDate = newDate;
+        await reservationRepository.UpdateAsync(reservation);
+        return reservation;
+    }
+
     // HU-39: historial del turista
     public Task<IEnumerable<Reservation>> GetByTouristAsync(int touristId)
         => reservationRepository.GetByTouristAsync(touristId);

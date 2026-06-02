@@ -30,6 +30,13 @@ public class ReservationRepository(TuristGoDbContext context) : GenericRepositor
             .OrderByDescending(x => x.CreatedAt)
             .ToListAsync();
 
+    public async Task<IEnumerable<Reservation>> GetByTourAsync(int tourId)
+        => await context.Reservations
+            .Include(r => r.Tourist)
+            .Where(r => r.TourId == tourId)
+            .OrderByDescending(r => r.CreatedAt)
+            .ToListAsync();
+
     public async Task<Invoice?> GetInvoiceByReservationAsync(int reservationId)
         => await context.Invoices.FirstOrDefaultAsync(i => i.ReservationId == reservationId);
 }

@@ -85,7 +85,7 @@ export function TouristInvoicesPage() {
               <button onClick={() => setPreviewInvoice(null)}><X className="h-5 w-5 text-gray-400" /></button>
             </div>
             <div className="px-6 py-8 bg-gray-50">
-              <div className="bg-white p-8 rounded-lg border border-gray-200">
+              <div id="invoice-print-area" className="bg-white p-8 rounded-lg border border-gray-200">
                 <div className="text-center mb-8">
                   <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ backgroundColor: '#1A6B4A' }}>
                     <span className="text-white font-bold text-2xl">T</span>
@@ -117,8 +117,8 @@ export function TouristInvoicesPage() {
             </div>
             <div className="px-6 py-4 bg-gray-50 border-t flex justify-end gap-3">
               <Button variant="outline" onClick={() => setPreviewInvoice(null)}>Cerrar</Button>
-              <Button onClick={() => { toast.success('PDF descargado'); setPreviewInvoice(null); }}>
-                <Download className="h-4 w-4 mr-2" />Descargar
+              <Button onClick={() => window.print()}>
+                <Download className="h-4 w-4 mr-2" />Descargar PDF
               </Button>
             </div>
           </div>

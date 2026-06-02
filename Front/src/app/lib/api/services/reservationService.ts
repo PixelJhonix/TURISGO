@@ -40,3 +40,8 @@ export async function completeReservationApi(id: number) {
 export async function getAgencyReservationsApi(): Promise<ApiReservation[]> {
   return apiClient.get<ApiReservation[]>('/reservation/agency');
 }
+
+// HU-43: cambio de fecha de reserva
+export async function rescheduleReservationApi(id: number, newDate: string) {
+  return apiClient.patch(`/reservation/${id}/reschedule`, { newDate });
+}

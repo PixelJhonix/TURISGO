@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using TuristGo.API.DTOs;
 using TuristGo.Domain.Entities;
+using TuristGo.Domain.Enums;
 using TuristGo.Domain.Interfaces.Repositories;
 
 namespace TuristGo.API.Controllers;
@@ -11,6 +12,7 @@ namespace TuristGo.API.Controllers;
 [Route("api/guide")]
 public class GuideController(
     ITourRepository tourRepository,
+    IReservationRepository reservationRepository,
     IGenericRepository<GuideUnavailability> unavailabilityRepo) : ControllerBase
 {
     // HU-22 CA-01/02: tours asignados al guía autenticado
@@ -58,6 +60,26 @@ public class GuideController(
         });
 
         return Ok(new UnavailabilityResponseDTO(unavailability.Id, unavailability.StartDateTime, unavailability.EndDateTime));
+    }
+
+    // HU-41: turistas confirmados en un tour asignado al guía
+    [HttpGet("tours/{tourId:int}/tourists")]
+    public async Task<ActionResult> GetTouristsInTour(int tourId)
+    {
+        var guideId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
+        var tour = await tourRepository.GetByIdAsync(tourId);
+        if (tour is null || tour.GuideId != guideId) return Forbid();
+
+        var reservations = await reservationRepository.GetByTourAsync(tourId);
+        var result = reservations
+            .Where(r => r.Status == ReservationStatus.Confirmed)
+            .Select(r => new
+            {
+                r.Id,
+                TouristName = r.Tourist?.FullName ?? "",
+                TourDate = r.TourDate.ToString("yyyy-MM-dd"),
+            });
+        return Ok(result);
     }
 
     // HU-24: eliminar período de no disponibilidad

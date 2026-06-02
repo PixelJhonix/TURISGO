@@ -88,6 +88,17 @@ public class ReservationController(
             r.Tour?.Price ?? 0)));
     }
 
+    // HU-43: cambio de fecha de reserva (>24h, nueva fecha futura)
+    [HttpPatch("{id:int}/reschedule")]
+    [Authorize(Roles = "Tourist")]
+    public async Task<ActionResult> Reschedule(int id, [FromBody] RescheduleRequestDTO dto)
+    {
+        var touristId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
+        var newDate = DateOnly.Parse(dto.NewDate);
+        await facade.RescheduleBookingAsync(id, touristId, newDate);
+        return Ok(new { message = "Fecha de reserva actualizada." });
+    }
+
     // HU-55 CA-01–03: calificar tour — solo reservas Completed, una vez por reserva
     [HttpPost("{id:int}/review")]
     [Authorize(Roles = "Tourist")]

@@ -1,6 +1,6 @@
 # Pendientes de implementación — TuristGo
 **Actualizado:** 2026-06-02  
-**Commits relevantes de sesión anterior:** `3f52b50` `3b3bf25` `1f9c16d` `f92838e`
+**Estado:** ✅ TODOS IMPLEMENTADOS — commit `(ver git log)`
 
 Cada pendiente tiene: qué archivos tocar, qué crear, pseudocódigo/estructura y criterio de verificación.
 

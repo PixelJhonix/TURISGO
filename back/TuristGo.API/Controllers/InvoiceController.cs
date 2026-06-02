@@ -51,6 +51,20 @@ public class InvoiceController(
         }));
     }
 
+    // HU-47: factura manual emitida por la agencia
+    [HttpPost("agency/manual")]
+    [Authorize(Roles = "Agency")]
+    public async Task<ActionResult> CreateManual([FromBody] ManualInvoiceRequestDTO dto)
+    {
+        var agencyId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
+        if (string.IsNullOrWhiteSpace(dto.Description))
+            throw new ArgumentException("La descripción es obligatoria para facturas manuales.");
+        if (dto.Amount <= 0)
+            throw new ArgumentException("El monto debe ser mayor a cero.");
+        var invoice = await invoiceRepo.CreateManualAsync(agencyId, dto.ReservationId, dto.Amount, dto.Description);
+        return Ok(new { invoice.Id, message = "Factura manual emitida." });
+    }
+
     // HU-50 + Builder pattern: reporte admin con período, retenciones, anuladas separadas
     [HttpGet("admin/report")]
     [Authorize(Roles = "Admin")]

@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate } from 'react-router';
 import { LandingPage } from './pages/LandingPage';
 import { LoginPage } from './pages/LoginPage';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
+import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { RegisterTouristPage } from './pages/RegisterTouristPage';
 import { RegisterAgencyPage } from './pages/RegisterAgencyPage';
 import { ToursPublicPage } from './pages/ToursPublicPage';
@@ -28,6 +29,10 @@ export const router = createBrowserRouter([
   {
     path: '/recuperar-contrasena',
     element: <ForgotPasswordPage />,
+  },
+  {
+    path: '/reset-password',
+    element: <ResetPasswordPage />,
   },
   {
     path: '/registro/turista',

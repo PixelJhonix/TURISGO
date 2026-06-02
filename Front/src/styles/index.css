@@ -27,6 +27,14 @@
 }
 
 @media print {
-  body > *:not(#invoice-print-area) { display: none !important; }
-  #invoice-print-area { display: block !important; }
+  body * { visibility: hidden; }
+  #invoice-print-area, #invoice-print-area * { visibility: visible; }
+  #invoice-print-area {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 2rem;
+    background: white;
+  }
 }

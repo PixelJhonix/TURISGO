@@ -8,4 +8,6 @@ public class Invoice : AuditBase
     public Reservation? Reservation { get; set; }
     public decimal Amount { get; set; }
     public InvoiceStatus Status { get; set; }
+    public bool IsManual { get; set; }
+    public string? ManualDescription { get; set; }
 }

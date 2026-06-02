@@ -59,3 +59,8 @@ export async function getAgencyInvoicesApi(start?: string, end?: string): Promis
 export async function getAdminBillingReportApi(start: string, end: string): Promise<ApiAdminBillingReport> {
   return apiClient.get<ApiAdminBillingReport>(`/invoice/admin/report?start=${start}&end=${end}`);
 }
+
+// HU-47: factura manual agencia
+export async function createManualInvoiceApi(reservationId: number, amount: number, description: string) {
+  return apiClient.post<{ id: number; message: string }>('/invoice/agency/manual', { reservationId, amount, description });
+}

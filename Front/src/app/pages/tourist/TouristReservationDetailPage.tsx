@@ -6,7 +6,7 @@ import { Navbar } from '../../components/Navbar';
 import { Button } from '../../components/ui/button';
 import { StatusBadge } from '../../components/StatusBadge';
 import { useAuth } from '../../lib/auth';
-import { getMyReservationsApi, cancelReservationApi, type ApiReservation } from '../../lib/api/services/reservationService';
+import { getMyReservationsApi, cancelReservationApi, rescheduleReservationApi, type ApiReservation } from '../../lib/api/services/reservationService';
 import { apiClient } from '../../lib/api/client';
 
 const statusUi: Record<string, string> = {
@@ -21,6 +21,8 @@ export function TouristReservationDetailPage() {
   const [stars, setStars] = useState(0);
   const [review, setReview] = useState('');
   const [showRateModal, setShowRateModal] = useState(false);
+  const [showRescheduleModal, setShowRescheduleModal] = useState(false);
+  const [newDate, setNewDate] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   if (!isAuthenticated || user?.role !== 'Turista') return <Navigate to="/login" replace />;
@@ -119,7 +121,10 @@ export function TouristReservationDetailPage() {
 
           <div className="flex gap-3 flex-wrap">
             {uiStatus === 'Confirmada' && (
-              <Button variant="destructive" onClick={handleCancel}>Cancelar reserva</Button>
+              <>
+                <Button variant="destructive" onClick={handleCancel}>Cancelar reserva</Button>
+                <Button variant="outline" onClick={() => setShowRescheduleModal(true)}>Cambiar fecha</Button>
+              </>
             )}
             {uiStatus === 'Completada' && (
               <>
@@ -134,6 +139,50 @@ export function TouristReservationDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Reschedule Modal */}
+      {showRescheduleModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
+            <div className="px-6 py-5 border-b flex items-start justify-between">
+              <div>
+                <h2 className="text-xl font-semibold">Cambiar fecha de reserva</h2>
+                <p className="text-sm text-gray-600 mt-1">Solo con más de 24h de anticipación</p>
+              </div>
+              <button onClick={() => setShowRescheduleModal(false)}><X className="h-5 w-5 text-gray-400" /></button>
+            </div>
+            <div className="px-6 py-5">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Nueva fecha del tour</label>
+              <input
+                type="date"
+                value={newDate}
+                min={new Date(Date.now() + 86400000).toISOString().split('T')[0]}
+                onChange={(e) => setNewDate(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+            <div className="px-6 py-4 bg-gray-50 border-t flex justify-end gap-3">
+              <Button variant="outline" onClick={() => setShowRescheduleModal(false)}>Cancelar</Button>
+              <Button disabled={submitting} onClick={async () => {
+                if (!newDate) { toast.error('Selecciona una fecha'); return; }
+                try {
+                  setSubmitting(true);
+                  await rescheduleReservationApi(reservation.id, newDate);
+                  toast.success('Fecha actualizada correctamente');
+                  setShowRescheduleModal(false);
+                  setReservation((r) => r ? { ...r, tourDate: newDate } : r);
+                } catch (e) {
+                  toast.error(e instanceof Error ? e.message : 'Error al cambiar la fecha');
+                } finally {
+                  setSubmitting(false);
+                }
+              }}>
+                {submitting ? 'Guardando...' : 'Confirmar cambio'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Rating Modal */}
       {showRateModal && (
