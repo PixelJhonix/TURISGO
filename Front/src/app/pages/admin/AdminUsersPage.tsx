@@ -6,7 +6,7 @@ import { Button } from '../../components/ui/button';
 import { StatusBadge } from '../../components/StatusBadge';
 import { useAuth } from '../../lib/auth';
 import { User } from '../../lib/mockData';
-import { approveAgencyApi, getAdminUsersApi, suspendUserApi, deleteUserApi } from '../../lib/api/services/adminService';
+import { approveAgencyApi, getAdminUsersApi, suspendUserApi, reactivateUserApi, deleteUserApi } from '../../lib/api/services/adminService';
 import { useEffect } from 'react';
 
 export function AdminUsersPage() {
@@ -149,6 +149,24 @@ export function AdminUsersPage() {
                       {u.status === 'Activo' && (
                         <Button size="sm" variant="destructive" onClick={() => setSuspendTarget(u.id)}>
                           Suspender
+                        </Button>
+                      )}
+                      {u.status === 'Suspendido' && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-green-700 border-green-300 hover:bg-green-50"
+                          onClick={async () => {
+                            try {
+                              await reactivateUserApi(Number(u.id));
+                              toast.success('Cuenta reactivada');
+                              await loadUsers();
+                            } catch (e) {
+                              toast.error(e instanceof Error ? e.message : 'No fue posible reactivar');
+                            }
+                          }}
+                        >
+                          Reactivar
                         </Button>
                       )}
                       {u.role !== 'Administrador' && (

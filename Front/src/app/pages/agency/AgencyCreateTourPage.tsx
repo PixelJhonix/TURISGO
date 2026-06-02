@@ -14,6 +14,12 @@ export function AgencyCreateTourPage() {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [saving, setSaving] = useState(false);
+  const [btnError, setBtnError] = useState(false);
+
+  const triggerBtnError = () => {
+    setBtnError(true);
+    setTimeout(() => setBtnError(false), 500);
+  };
   const [form, setForm] = useState({
     name: '',
     description: '',
@@ -25,6 +31,7 @@ export function AgencyCreateTourPage() {
     meetingPoint: '',
     date: '',
     time: '',
+    imageUrl: '',
   });
   
   if (!isAuthenticated || user?.role !== 'Agencia') {
@@ -35,10 +42,11 @@ export function AgencyCreateTourPage() {
     if (!form.name || !form.description || !form.category || !form.price ||
         !form.maxCapacity || !form.duration || !form.meetingPoint || !form.date || !form.time) {
       toast.error('Todos los campos son obligatorios.');
+      triggerBtnError();
       return;
     }
-    if (Number(form.price) <= 0) { toast.error('El precio debe ser mayor a cero.'); return; }
-    if (Number(form.maxCapacity) <= 0) { toast.error('Los cupos deben ser mayor a cero.'); return; }
+    if (Number(form.price) <= 0) { toast.error('El precio debe ser mayor a cero.'); triggerBtnError(); return; }
+    if (Number(form.maxCapacity) <= 0) { toast.error('Los cupos deben ser mayor a cero.'); triggerBtnError(); return; }
 
     try {
       setSaving(true);
@@ -53,11 +61,13 @@ export function AgencyCreateTourPage() {
         startTime,
         durationMinutes: Number(form.duration) * 60,
         meetingPoint: form.meetingPoint,
+        imageUrl: form.imageUrl || null,
       });
       toast.success(`Tour creado con código ${result.code}. Asigna un guía para activarlo.`);
       navigate('/agencia/tours');
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Error al crear el tour');
+      triggerBtnError();
     } finally {
       setSaving(false);
     }
@@ -154,22 +164,39 @@ export function AgencyCreateTourPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Fecha del tour</Label>
-                <Input 
+                <Input
                   type="date"
                   value={form.date}
+                  min={new Date().toISOString().split('T')[0]}
                   onChange={(e) => setForm({ ...form, date: e.target.value })}
                 />
               </div>
               <div>
                 <Label>Hora del tour</Label>
-                <Input 
+                <Input
                   type="time"
                   value={form.time}
                   onChange={(e) => setForm({ ...form, time: e.target.value })}
                 />
               </div>
             </div>
-            <Button onClick={handleSubmit} disabled={saving}>
+            <div>
+              <Label>URL de imagen (opcional)</Label>
+              <Input
+                placeholder="https://images.unsplash.com/..."
+                value={form.imageUrl}
+                onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
+              />
+              {form.imageUrl && (
+                <img
+                  src={form.imageUrl}
+                  alt="Vista previa"
+                  className="mt-2 h-32 w-full object-cover rounded-lg"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                />
+              )}
+            </div>
+            <Button onClick={handleSubmit} disabled={saving} className={btnError ? 'btn-error' : ''}>
               {saving ? 'Guardando...' : 'Guardar tour'}
             </Button>
           </div>

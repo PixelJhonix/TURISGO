@@ -100,6 +100,9 @@ export function TouristReservationsPage() {
                   <div className="flex items-start justify-between mb-2">
                     <div>
                       <h3 className="text-xl font-semibold">{reservation.tourName}</h3>
+                      {reservation.agencyName && (
+                        <p className="text-sm text-primary font-medium">{reservation.agencyName}</p>
+                      )}
                       <p className="text-gray-600">{reservation.reservationNumber}</p>
                     </div>
                     <StatusBadge status={uiStatus(reservation.status) as any} />

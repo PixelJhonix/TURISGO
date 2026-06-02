@@ -19,6 +19,8 @@ type ApiTour = {
   guideId: number | null;
   vehicleId: number | null;
   imagePlaceholder: string | null;
+  agencyId: number;
+  agencyName: string;
 };
 
 export async function getToursApi(): Promise<Tour[]> {
@@ -37,9 +39,9 @@ export async function getToursApi(): Promise<Tour[]> {
     meetingPoint: item.meetingPoint || '',
     date: item.startTime ? item.startTime.slice(0, 10) : new Date().toISOString().slice(0, 10),
     time: item.startTime ? item.startTime.slice(11, 16) : '09:00',
-    // A.5: usa imagePlaceholder del back cuando esté disponible; fallback a array vacío
     images: item.imagePlaceholder ? [item.imagePlaceholder] : [],
-    agencyId: '',
+    agencyId: String(item.agencyId),
+    agencyName: item.agencyName ?? '',
     status: tourStatusToUi[item.status] || 'Inactivo',
   }));
 }

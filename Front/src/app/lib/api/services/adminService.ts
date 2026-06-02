@@ -31,6 +31,11 @@ export async function suspendUserApi(userId: number, reason: string) {
   await apiClient.patch(`/admin/users/${userId}/suspend`, { reason });
 }
 
+// Reactivar usuario suspendido
+export async function reactivateUserApi(userId: number) {
+  await apiClient.patch(`/admin/users/${userId}/reactivate`);
+}
+
 // HU-09 CA-03 / HU-13 CA-02: eliminar con validación reservas activas
 export async function deleteUserApi(userId: number) {
   await apiClient.del(`/admin/users/${userId}`);

@@ -16,7 +16,7 @@ public class ReservationRepository(TuristGoDbContext context) : GenericRepositor
 
     public async Task<IEnumerable<Reservation>> GetByTouristAsync(int touristId)
         => await context.Reservations
-            .Include(x => x.Tour)
+            .Include(x => x.Tour).ThenInclude(t => t!.Agency)
             .Where(x => x.TouristId == touristId)
             .OrderByDescending(x => x.CreatedAt)
             .ToListAsync();
@@ -24,7 +24,7 @@ public class ReservationRepository(TuristGoDbContext context) : GenericRepositor
     // HU-40: reservas filtradas por agencia
     public async Task<IEnumerable<Reservation>> GetByAgencyAsync(int agencyId)
         => await context.Reservations
-            .Include(x => x.Tour)
+            .Include(x => x.Tour).ThenInclude(t => t!.Agency)
             .Include(x => x.Tourist)
             .Where(x => x.Tour!.AgencyId == agencyId)
             .OrderByDescending(x => x.CreatedAt)

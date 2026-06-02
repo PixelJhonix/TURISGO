@@ -19,6 +19,7 @@ public class Tour : AuditBase
     public string MeetingPoint { get; set; } = string.Empty;
     public TourStatus Status { get; set; }
     public string? DeactivationReason { get; set; }
+    public string? ImageUrl { get; set; }
     public decimal AverageRating { get; set; }
     public int? GuideId { get; set; }
     public Guide? Guide { get; set; }

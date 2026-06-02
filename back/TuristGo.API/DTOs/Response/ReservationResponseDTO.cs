@@ -5,6 +5,7 @@ public record ReservationResponseDTO(
     string ReservationNumber,
     int TourId,
     string TourName,
+    string AgencyName,
     string TourDate,
     string Status,
     decimal Amount

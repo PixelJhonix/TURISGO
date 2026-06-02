@@ -45,6 +45,7 @@ public class ReservationController(
             $"RES-{r.CreatedAt:yyyy}-{r.Id:D6}",
             r.TourId,
             r.Tour?.Name ?? "",
+            r.Tour?.Agency?.CommercialName ?? "",
             r.TourDate.ToString("yyyy-MM-dd"),
             r.Status.ToString(),
             r.Tour?.Price ?? 0)));
@@ -81,6 +82,7 @@ public class ReservationController(
             $"RES-{r.CreatedAt:yyyy}-{r.Id:D6}",
             r.TourId,
             r.Tour?.Name ?? "",
+            r.Tour?.Agency?.CommercialName ?? "",
             r.TourDate.ToString("yyyy-MM-dd"),
             r.Status.ToString(),
             r.Tour?.Price ?? 0)));

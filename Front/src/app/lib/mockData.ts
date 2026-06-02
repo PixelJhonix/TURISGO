@@ -25,6 +25,7 @@ export interface Tour {
   schedules?: TourSchedule[]; // Multiple schedules for the same tour
   images: string[];
   agencyId: string;
+  agencyName?: string;
   guideId?: string;
   vehicleId?: string;
   status: 'Activo' | 'Inactivo';

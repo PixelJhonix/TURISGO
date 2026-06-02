@@ -60,6 +60,7 @@ public class TourController(ITourRepository tourRepository, IMapper mapper) : Co
             DurationMinutes = dto.DurationMinutes,
             MeetingPoint = dto.MeetingPoint,
             Status = TourStatus.Inactive, // HU-17 CA-02: inactivo hasta tener guía
+            ImageUrl = string.IsNullOrWhiteSpace(dto.ImageUrl) ? null : dto.ImageUrl,
         };
         var created = await tourRepository.CreateAsync(tour);
         return Ok(new { created.Id, created.Code, message = "Tour creado. Asigna un guía para activarlo." });
@@ -91,6 +92,7 @@ public class TourController(ITourRepository tourRepository, IMapper mapper) : Co
         tour.StartTime = dto.StartTime;
         tour.DurationMinutes = dto.DurationMinutes;
         tour.MeetingPoint = dto.MeetingPoint;
+        if (!string.IsNullOrWhiteSpace(dto.ImageUrl)) tour.ImageUrl = dto.ImageUrl;
 
         await tourRepository.UpdateAsync(tour);
         return NoContent();

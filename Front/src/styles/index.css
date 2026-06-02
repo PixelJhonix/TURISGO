@@ -1,3 +1,32 @@
 @import './fonts.css';
 @import './tailwind.css';
 @import './theme.css';
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%       { transform: translateX(-6px); }
+  40%       { transform: translateX(6px); }
+  60%       { transform: translateX(-4px); }
+  80%       { transform: translateX(4px); }
+}
+
+.btn-error {
+  animation: shake 0.4s ease;
+  background-color: var(--turistgo-error) !important;
+  color: #fff !important;
+}
+
+/* Toast de error más visible */
+[data-sonner-toast][data-type="error"] {
+  background: var(--turistgo-error) !important;
+  color: #fff !important;
+  font-weight: 600;
+  font-size: 0.9rem;
+  border: none !important;
+  box-shadow: 0 4px 20px rgba(217, 64, 64, 0.35) !important;
+}
+
+@media print {
+  body > *:not(#invoice-print-area) { display: none !important; }
+  #invoice-print-area { display: block !important; }
+}

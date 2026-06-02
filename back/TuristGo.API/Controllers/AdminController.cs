@@ -59,6 +59,18 @@ public class AdminController(
         return NoContent();
     }
 
+    // Reactivar usuario suspendido
+    [HttpPatch("users/{id:int}/reactivate")]
+    public async Task<ActionResult> ReactivateUser(int id)
+    {
+        var user = await userRepository.GetByIdAsync(id);
+        if (user is null) return NotFound();
+        user.Status = UserStatus.Active;
+        user.SuspensionReason = null;
+        await userRepository.UpdateAsync(user);
+        return NoContent();
+    }
+
     // HU-09 CA-03 / HU-13 CA-02/03: eliminar usuario con validaciones RN-15/16
     [HttpDelete("users/{id:int}")]
     public async Task<ActionResult> DeleteUser(int id)

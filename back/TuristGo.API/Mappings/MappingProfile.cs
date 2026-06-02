@@ -10,7 +10,9 @@ public class MappingProfile : Profile
     {
         CreateMap<Tour, TourResponseDTO>()
             .ForCtorParam("Status", opt => opt.MapFrom(src => src.Status.ToString()))
-            .ForCtorParam("ImagePlaceholder", opt => opt.MapFrom(src => GetImageByCategory(src.Category)));
+            .ForCtorParam("ImagePlaceholder", opt => opt.MapFrom(src => src.ImageUrl ?? GetImageByCategory(src.Category)))
+            .ForCtorParam("AgencyId", opt => opt.MapFrom(src => src.AgencyId))
+            .ForCtorParam("AgencyName", opt => opt.MapFrom(src => src.Agency != null ? src.Agency.CommercialName : string.Empty));
     }
 
     private static string? GetImageByCategory(string category) => category switch

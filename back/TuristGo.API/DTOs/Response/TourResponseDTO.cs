@@ -1,6 +1,5 @@
 ﻿namespace TuristGo.API.DTOs;
 
-// A.6: campos extendidos — retrocompatibles (nuevos campos opcionales no rompen consumidores anteriores)
 public record TourResponseDTO(
     int Id,
     string Name,
@@ -17,5 +16,7 @@ public record TourResponseDTO(
     string Status,
     int? GuideId,
     int? VehicleId,
-    string? ImagePlaceholder
+    string? ImagePlaceholder,
+    int AgencyId,
+    string AgencyName
 );

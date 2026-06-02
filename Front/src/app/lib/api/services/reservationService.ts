@@ -5,6 +5,7 @@ export type ApiReservation = {
   reservationNumber: string;
   tourId: number;
   tourName: string;
+  agencyName: string;
   tourDate: string;
   status: string;
   amount: number;

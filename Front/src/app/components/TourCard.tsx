@@ -56,10 +56,15 @@ export function TourCard({ tour, onReserve, showReserveButton = true, linkTo }: 
       <div className="p-4">
         <h3 className="text-xl font-semibold mb-2">{tour.name}</h3>
 
-        {/* Rating */}
-        <div className="flex items-center gap-1 mb-3">
-          <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-          <span className="font-semibold">{tour.rating.toFixed(1)}</span>
+        {/* Agency + Rating */}
+        <div className="flex items-center justify-between mb-3">
+          {tour.agencyName && (
+            <span className="text-xs text-gray-500 truncate max-w-[60%]">{tour.agencyName}</span>
+          )}
+          <div className="flex items-center gap-1 ml-auto">
+            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+            <span className="font-semibold text-sm">{tour.rating.toFixed(1)}</span>
+          </div>
         </div>
 
         {/* Info Grid */}

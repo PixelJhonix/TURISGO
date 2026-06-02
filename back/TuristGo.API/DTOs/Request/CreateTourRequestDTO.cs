@@ -9,5 +9,6 @@ public record CreateTourRequestDTO(
     int TotalCapacity,
     DateTime StartTime,
     int DurationMinutes,
-    string MeetingPoint
+    string MeetingPoint,
+    string? ImageUrl = null
 );
