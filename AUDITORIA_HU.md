@@ -1,7 +1,10 @@
 # Auditoría de Historias de Usuario — Entregable 3
-**Fecha:** 2026-06-02  
+**Última actualización:** 2026-06-02  
 **Referencia:** `ENTREGABLE 3 (Abierto).pdf` · `TuristGo_Merge_Completo.puml`  
 **Metodología:** revisión manual de código (controllers, servicios, DTOs, páginas frontend, servicios API)
+
+> **Estado al cierre de sesión 2026-06-02:** 27 HUs ✅ · 2 ⚠️ · 5 ❌ pendientes.  
+> Ver detalle de pendientes en [`PENDIENTES.md`](PENDIENTES.md).
 
 ---
 
@@ -677,13 +680,13 @@
 
 ### HUs que no cumplen (acción requerida)
 
-| HU | Título | Brecha concreta |
-|---|---|---|
-| **HU-15** | Recuperación de contraseña | Falta `POST /auth/forgot-password`, `POST /auth/reset-password` y `ResetPasswordPage.tsx` |
-| **HU-41** | Turistas en tour (guía) | Falta endpoint `GET /guide/tours/{id}/tourists` y UI en `GuideToursPage` |
-| **HU-43** | Cambio de fecha de reserva | Falta `RescheduleBookingAsync` en facade, `PATCH /reservation/{id}/reschedule` y modal en `TouristReservationDetailPage` |
-| **HU-47** | Factura manual de agencia | Falta campo `IsManual` en `Invoice`, migración EF, `POST /invoice/agency/manual` y botón en `AgencyInvoicesPage` |
-| **HU-52** | Descarga de factura en PDF | Falta `id="invoice-print-area"`, `window.print()` en el handler del botón Descargar |
+| HU | Título | Brecha concreta | Ref. detalle |
+|---|---|---|---|
+| **HU-15** | Recuperación de contraseña | Falta `POST /auth/forgot-password`, `POST /auth/reset-password` y `ResetPasswordPage.tsx` | [PENDIENTES.md#hu-15](PENDIENTES.md#hu-15--recuperar-contraseña) |
+| **HU-41** | Turistas en tour (guía) | Falta endpoint `GET /guide/tours/{id}/tourists` y UI en `GuideToursPage` | [PENDIENTES.md#hu-41](PENDIENTES.md#hu-41--turistas-inscritos-en-tour-vista-guía) |
+| **HU-43** | Cambio de fecha de reserva | Falta `RescheduleBookingAsync` en facade, `PATCH /reservation/{id}/reschedule` y modal en `TouristReservationDetailPage` | [PENDIENTES.md#hu-43](PENDIENTES.md#hu-43--cambio-de-fecha-de-reserva) |
+| **HU-47** | Factura manual de agencia | Falta campo `IsManual` en `Invoice`, migración EF, `POST /invoice/agency/manual` y botón en `AgencyInvoicesPage` | [PENDIENTES.md#hu-47](PENDIENTES.md#hu-47--factura-manual-de-agencia) |
+| **HU-52** | Descarga de factura en PDF | Falta `id="invoice-print-area"` y `window.print()` en el botón Descargar de `TouristInvoicesPage` | [PENDIENTES.md#hu-52](PENDIENTES.md#hu-52--descarga-de-factura-en-pdf) |
 
 ### HUs parciales
 
