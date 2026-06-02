@@ -1,33 +1,48 @@
 import { Navigate, Link } from 'react-router';
-import { Package, Users, Truck, Calendar, DollarSign, AlertTriangle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Package, Users, Calendar, DollarSign, AlertTriangle } from 'lucide-react';
 import { Sidebar } from '../../components/Sidebar';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { StatusBadge } from '../../components/StatusBadge';
 import { useAuth } from '../../lib/auth';
-import { mockTours, mockReservations, mockGuides, mockVehicles } from '../../lib/mockData';
+import { getAgencyReservationsApi, type ApiReservation } from '../../lib/api/services/reservationService';
+import { getAgencyGuidesApi, type ApiGuide } from '../../lib/api/services/guideService';
+import { getAgencyInvoicesApi, type ApiInvoiceAgency } from '../../lib/api/services/invoiceService';
+import { getAgencyVehiclesApi, type ApiVehicle } from '../../lib/api/services/vehicleService';
 
 export function AgencyDashboard() {
   const { user, isAuthenticated } = useAuth();
+  const [reservations, setReservations] = useState<ApiReservation[]>([]);
+  const [guides, setGuides] = useState<ApiGuide[]>([]);
+  const [invoices, setInvoices] = useState<ApiInvoiceAgency[]>([]);
+  const [vehicles, setVehicles] = useState<ApiVehicle[]>([]);
 
   if (!isAuthenticated || user?.role !== 'Agencia') {
     return <Navigate to="/login" replace />;
   }
 
-  const agencyTours = mockTours.filter((t) => t.agencyId === user.id);
-  const activeTours = agencyTours.filter((t) => t.status === 'Activo');
-  const agencyGuides = mockGuides.filter((g) => g.agencyId === user.id);
-  const agencyReservations = mockReservations.filter((r) => 
-    agencyTours.some((t) => t.id === r.tourId)
-  );
-  
-  const thisMonthReservations = agencyReservations.filter((r) => {
-    const date = new Date(r.date);
-    const now = new Date();
-    return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
-  });
+  useEffect(() => {
+    Promise.all([
+      getAgencyReservationsApi(),
+      getAgencyGuidesApi(),
+      getAgencyInvoicesApi(),
+      getAgencyVehiclesApi(),
+    ]).then(([r, g, i, v]) => {
+      setReservations(r); setGuides(g); setInvoices(i); setVehicles(v);
+    }).catch(() => {});
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const thisMonthRevenue = thisMonthReservations.reduce((sum, r) => sum + r.price, 0);
+  const activeReservations = reservations.filter((r) => r.status === 'Confirmed');
+  const now = new Date();
+  const thisMonthReservations = reservations.filter((r) => {
+    const d = new Date(r.tourDate);
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  });
+  const thisMonthRevenue = invoices
+    .filter((i) => { const d = new Date(i.issuedAt); return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear(); })
+    .reduce((sum, i) => sum + i.netAmount, 0);
+  const expiringGuides = guides.filter((g) => g.daysToExpiry < 30 && g.daysToExpiry >= 0);
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -55,7 +70,8 @@ export function AgencyDashboard() {
                 <Package className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{activeTours.length}</div>
+                <div className="text-2xl font-bold">{activeReservations.length}</div>
+                <p className="text-xs text-muted-foreground">confirmadas</p>
               </CardContent>
             </Card>
 
@@ -66,6 +82,7 @@ export function AgencyDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{thisMonthReservations.length}</div>
+                <p className="text-xs text-muted-foreground">este mes</p>
               </CardContent>
             </Card>
 
@@ -76,7 +93,7 @@ export function AgencyDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">${(thisMonthRevenue / 1000).toFixed(0)}k</div>
-                <p className="text-xs text-muted-foreground">${thisMonthRevenue.toLocaleString('es-CO')}</p>
+                <p className="text-xs text-muted-foreground">neto este mes</p>
               </CardContent>
             </Card>
 
@@ -86,7 +103,8 @@ export function AgencyDashboard() {
                 <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{agencyGuides.length}</div>
+                <div className="text-2xl font-bold">{guides.length}</div>
+                <p className="text-xs text-muted-foreground">registrados</p>
               </CardContent>
             </Card>
           </div>
@@ -105,19 +123,16 @@ export function AgencyDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {agencyReservations.slice(0, 5).map((reservation) => {
-                    const tour = mockTours.find((t) => t.id === reservation.tourId);
-                    return (
-                      <tr key={reservation.id} className="border-b">
-                        <td className="py-3 px-4">Carlos Restrepo</td>
-                        <td className="py-3 px-4">{tour?.name}</td>
-                        <td className="py-3 px-4">{new Date(reservation.date).toLocaleDateString('es-CO')}</td>
-                        <td className="py-3 px-4">
-                          <StatusBadge status={reservation.status} />
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {reservations.slice(0, 5).map((reservation) => (
+                    <tr key={reservation.id} className="border-b">
+                      <td className="py-3 px-4 text-sm">{reservation.reservationNumber}</td>
+                      <td className="py-3 px-4">{reservation.tourName}</td>
+                      <td className="py-3 px-4">{new Date(reservation.tourDate).toLocaleDateString('es-CO')}</td>
+                      <td className="py-3 px-4">
+                        <StatusBadge status={{ Confirmed: 'Confirmada', Completed: 'Completada', Cancelled: 'Cancelada' }[reservation.status] ?? reservation.status as any} />
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -126,32 +141,23 @@ export function AgencyDashboard() {
             </Link>
           </div>
 
-          {/* Alerts */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-              <div className="flex items-start gap-3">
-                <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5" />
-                <div>
-                  <h3 className="font-semibold text-yellow-900 mb-2">Tours con cupos críticos</h3>
-                  <p className="text-sm text-yellow-800">
-                    2 tours tienen menos de 3 cupos disponibles
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-orange-50 border border-orange-200 rounded-lg p-6">
+          {/* Alertas dinámicas */}
+          {expiringGuides.length > 0 && (
+            <div className="bg-orange-50 border border-orange-200 rounded-lg p-6 mt-6">
               <div className="flex items-start gap-3">
                 <AlertTriangle className="h-5 w-5 text-orange-600 mt-0.5" />
                 <div>
                   <h3 className="font-semibold text-orange-900 mb-2">Certificados próximos a vencer</h3>
-                  <p className="text-sm text-orange-800">
-                    1 guía tiene su certificado por vencer
-                  </p>
+                  {expiringGuides.map((g) => (
+                    <p key={g.id} className="text-sm text-orange-800">
+                      {g.fullName}: vence en {g.daysToExpiry} días
+                    </p>
+                  ))}
+                  <Link to="/agencia/guias" className="text-sm text-orange-700 underline mt-2 inline-block">Actualizar certificados</Link>
                 </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

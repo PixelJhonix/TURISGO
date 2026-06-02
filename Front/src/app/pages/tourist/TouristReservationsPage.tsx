@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, Navigate } from 'react-router';
-import { Star, X, AlertCircle } from 'lucide-react';
+import { Star, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Navbar } from '../../components/Navbar';
 import { Button } from '../../components/ui/button';
@@ -57,86 +57,6 @@ export function TouristReservationsPage() {
     }
   };
 
-  const checkDateConflict = (reservationId: string, newScheduleId: string, newDateSelected: string) => {
-    if (!newScheduleId || !newDateSelected) return null;
-
-    const currentReservation = reservations.find(r => r.id === reservationId);
-    if (!currentReservation) return null;
-
-    const tour = mockTours.find(t => t.id === currentReservation.tourId);
-    if (!tour || !tour.schedules) return null;
-
-    const newSchedule = tour.schedules.find(s => s.id === newScheduleId);
-    if (!newSchedule) return null;
-
-    const parseTime = (timeStr: string) => {
-      const [hours, minutes] = timeStr.split(':').map(Number);
-      return hours * 60 + minutes;
-    };
-
-    const newStartMinutes = parseTime(newSchedule.startTime);
-    const newEndMinutes = parseTime(newSchedule.endTime);
-
-    // Check for conflicts with other reservations (except current one)
-    for (const reservation of reservations) {
-      if (reservation.id === reservationId) continue;
-      if (reservation.status !== 'Confirmada' && reservation.status !== 'Pendiente') continue;
-      if (!reservation.startTime || !reservation.endTime) continue;
-
-      // Only check for conflicts on the same date
-      if (reservation.date !== newDateSelected) continue;
-
-      const existingStartMinutes = parseTime(reservation.startTime);
-      const existingEndMinutes = parseTime(reservation.endTime);
-
-      const hasOverlap =
-        (newStartMinutes < existingEndMinutes && newEndMinutes > existingStartMinutes);
-
-      if (hasOverlap) {
-        const conflictTour = mockTours.find(t => t.id === reservation.tourId);
-        return { reservation, tour: conflictTour };
-      }
-    }
-
-    return null;
-  };
-
-  const handleChangeDate = () => {
-    if (!newScheduleId) {
-      toast.error('Por favor selecciona un horario');
-      return;
-    }
-
-    const conflict = checkDateConflict(dateTarget!, newScheduleId, newDate);
-    if (conflict) {
-      setConflictInfo(conflict);
-      setShowConflictAlert(true);
-      setDateTarget(null);
-      setNewDate('');
-      setNewScheduleId('');
-      return;
-    }
-
-    const currentReservation = reservations.find(r => r.id === dateTarget);
-    const tour = mockTours.find(t => t.id === currentReservation?.tourId);
-    const newSchedule = tour?.schedules?.find(s => s.id === newScheduleId);
-
-    if (newSchedule) {
-      setReservations(prev => prev.map(r =>
-        r.id === dateTarget ? {
-          ...r,
-          date: newDate,
-          scheduleId: newScheduleId,
-          startTime: newSchedule.startTime,
-          endTime: newSchedule.endTime
-        } : r
-      ));
-      toast.success('Fecha actualizada correctamente');
-      setDateTarget(null);
-      setNewDate('');
-      setNewScheduleId('');
-    }
-  };
 
   const handleRateTour = () => {
     if (stars === 0) { toast.error('Selecciona una calificación'); return; }
