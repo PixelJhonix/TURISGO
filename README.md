@@ -69,19 +69,96 @@ Abre el navegador en **http://localhost:5173**
 
 ---
 
-## Usuarios de prueba (ya creados automáticamente)
+## Datos de prueba (creados automáticamente al arrancar)
 
-| Rol | Email | Contraseña |
+> **Primera vez:** el backend crea y llena la base de datos solo. No necesitas hacer nada extra.  
+> **Reiniciar datos:** elimina el archivo `.mdf` de LocalDB (o la base `TuristGoDB` desde SQL Server Management Studio) y vuelve a arrancar el backend.
+
+---
+
+### Usuarios
+
+#### Administrador
+
+| Email | Contraseña | Estado |
 |---|---|---|
-| Administrador | admin@turistgo.com | Admin123! |
-| Agencia 1 | andes@turistgo.com | Agency123! |
-| Agencia 2 | paisa@turistgo.com | Agency123! |
-| Turista | tourist@turistgo.com | Tourist123! |
-| Turista 2 | maria@turistgo.com | Tourist123! |
-| Guía 1 (Andes) | guide1.2@turistgo.com | Guide123! |
-| Guía 1 (Paisa) | guide1.4@turistgo.com | Guide123! |
+| admin@turistgo.com | Admin123! | Activo |
 
-> Los IDs de los guías (el número después del punto) dependen del orden en que se crean las agencias. Si la base de datos es nueva, las agencias reciben IDs 2 y 4 (el ID 1 es el admin). Si los emails de guía no funcionan, prueba con `guide1.3@turistgo.com` o revisa los IDs en Swagger o SQL Server.
+#### Agencias
+
+| Email | Contraseña | Nombre comercial | Estado | Para probar |
+|---|---|---|---|---|
+| andes@turistgo.com | Agency123! | Andes Tours Medellín | Activo | Flujo completo de agencia |
+| paisa@turistgo.com | Agency123! | Paisa Experience | Activo | Segunda agencia independiente |
+| nueva@turistgo.com | Agency123! | Nueva Aventura SAS | **Pendiente** | Flujo de aprobación desde admin |
+| suspendida@turistgo.com | Agency123! | Tours Suspendidos SA | **Suspendida** | Flujo de reactivación desde admin |
+
+#### Turistas
+
+| Email | Contraseña | Estado | Para probar |
+|---|---|---|---|
+| tourist@turistgo.com | Tourist123! | Activo | Turista principal — tiene reservas de todos los estados |
+| maria@turistgo.com | Tourist123! | Activo | Reservas en tours con capacidad baja |
+| carlos@turistgo.com | Tourist123! | Activo | Reserva completada sin calificar aún |
+| ana@turistgo.com | Tourist123! | Activo | Reservas en tours futuros distintos |
+| pendiente@turistgo.com | Tourist123! | **Pendiente** | Cuenta sin activar |
+| suspend@turistgo.com | Tourist123! | **Suspendido** | Login bloqueado por suspensión |
+
+#### Guías — escenarios de certificado
+
+| Email | Contraseña | Agencia | Certificado | Para probar |
+|---|---|---|---|---|
+| guide1.1@turistgo.com | Guide123! | Andes Tours | Vigente (2 años) | Asignación normal — caso feliz |
+| guide2.1@turistgo.com | Guide123! | Andes Tours | Vence en **15 días** | GUIDE-01 borde: asignación debe fallar |
+| guide3.1@turistgo.com | Guide123! | Andes Tours | Vence **mañana** | Límite extremo de cert vigente |
+| guide4.1@turistgo.com | Guide123! | Andes Tours | Vencido **ayer** | GUIDE-01: asignación debe rechazarse |
+| guide5.1@turistgo.com | Guide123! | Andes Tours | Vencido hace **1 año** | Claramente inválido |
+| guide6.1@turistgo.com | Guide123! | Andes Tours | Vigente | Cuenta **suspendida** |
+| guide1.2@turistgo.com | Guide123! | Paisa Experience | Vigente (18 meses) | Guía activo Paisa |
+| guide2.2@turistgo.com | Guide123! | Paisa Experience | Vence en **29 días** | Borde "próximo a vencer" |
+| guide3.2@turistgo.com | Guide123! | Paisa Experience | Vencido hace **6 meses** | Cert claramente inválido |
+
+> **Nota:** los IDs en el email (`guide1.1`, `guide2.1`, etc.) son fijos desde la primera ejecución del seeder. El número antes del punto es el índice del guía (1–6 para Andes, 1–3 para Paisa); el número después del punto corresponde al ID de la agencia en BD.
+
+---
+
+### Tours de prueba
+
+| Código | Nombre | Escenario especial |
+|---|---|---|
+| TG-AND-001 | Comuna 13 Graffiti Tour | Tour en 30 días — cancelable y reprogramable |
+| TG-AND-002 | Guatapé y Piedra del Peñol | Tour en 3 días, 5 cupos — borde cancelación |
+| TG-AND-003 | Tour Gastronómico El Poblado | Tour **mañana** — exactamente >24h |
+| TG-AND-004 | Noche de Tango en Medellín | Tour en **<24h** — cancelación y reprogramación bloqueadas |
+| TG-AND-005 | Recorrido Histórico Centro | Tour **en curso hoy** |
+| TG-AND-006 | Parapente San Félix AGOTADO | **0 cupos disponibles** — debe mostrar "Agotado" |
+| TG-AND-007 | Finca Cafetera Jericó | Guía con cert que vence en 15 días |
+| TG-AND-008 | Ruta de las Orquídeas | **Inactivo** — sin guía ni vehículo |
+| TG-AND-009 | Tour Nocturno Barrio Laureles | Inactivo — guía con cert vencido ayer |
+| TG-AND-010 | Cañón del Río Claro | Inactivo — guía con cert vencido hace 1 año |
+| TG-PAI-001 | City Tour Centro Histórico | Tour en 7 días — dos horarios |
+| TG-PAI-002 | Coffee Farm Experience | Tour en 14 días, 25 cupos |
+| TG-PAI-003 | Rapel Cañón Las Palmas | Tour en 2 días, guía cert vence en 29 días |
+| TG-PAI-004 | Glamping Río Arví | Tour en 10 días, precio alto ($380.000), 1 cupo restante |
+| TG-PAI-005 | Visita Pueblito Paisa | Guía con cert vencido (asignación legacy errónea) |
+| TG-PAI-006 | Kayak Embalse El Peñol | **Inactivo** — sin asignaciones |
+| TG-PAI-007 | Selfie Tour Instagram | Precio mínimo ($25.000), dos turnos en el mismo día |
+
+---
+
+### Reservas precargadas (turista principal: tourist@turistgo.com)
+
+| Reserva | Tour | Estado | Para probar |
+|---|---|---|---|
+| R01 | TG-AND-001 (30 días) | **Confirmada** | Cancelación y cambio de fecha posibles |
+| R02 | TG-AND-002 (3 días) | **Confirmada** | Cancelación posible (>24h) |
+| R03 | TG-AND-004 (<24h) | **Confirmada** | Cancelación **bloqueada** por regla 24h |
+| R04 | TG-AND-001 (hace 10 días) | **Completada** | Ya tiene reseña (rating 5★) |
+| R05 | TG-PAI-001 (hace 5 días) | **Completada** | Ya tiene reseña (rating 4★) |
+| R06 | TG-PAI-002 (hace 20 días) | **Cancelada** | Factura anulada — historial |
+| R09 | TG-AND-003 (hace 3 días) | **Completada** | **Sin reseña** — flujo de calificación activo |
+
+TG-AND-006 está **lleno** (2/2 cupos): maria y carlos tienen reservas en ese tour.
 
 ---
 
