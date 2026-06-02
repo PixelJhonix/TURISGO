@@ -8,8 +8,7 @@ import { Label } from '../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Textarea } from '../../components/ui/textarea';
 import { useAuth } from '../../lib/auth';
-import { addTour } from '../../lib/toursStorage';
-import { Tour } from '../../lib/mockData';
+import { apiClient } from '../../lib/api/client';
 
 export function AgencyCreateTourPage() {
   const { user, isAuthenticated } = useAuth();
@@ -32,52 +31,36 @@ export function AgencyCreateTourPage() {
     return <Navigate to="/login" replace />;
   }
 
-  const handleSubmit = () => {
-    // Validaciones
-    if (!form.name || !form.description || !form.category || !form.price || 
+  const handleSubmit = async () => {
+    if (!form.name || !form.description || !form.category || !form.price ||
         !form.maxCapacity || !form.duration || !form.meetingPoint || !form.date || !form.time) {
       toast.error('Todos los campos son obligatorios.');
       return;
     }
-    
-    if (Number(form.price) <= 0) {
-      toast.error('El precio debe ser mayor a cero.');
-      return;
-    }
-    
-    if (Number(form.maxCapacity) <= 0) {
-      toast.error('Los cupos deben ser un número mayor a cero.');
-      return;
-    }
+    if (Number(form.price) <= 0) { toast.error('El precio debe ser mayor a cero.'); return; }
+    if (Number(form.maxCapacity) <= 0) { toast.error('Los cupos deben ser mayor a cero.'); return; }
 
-    setSaving(true);
-
-    const newTour: Tour = {
-      id: 'tour-' + Date.now(),
-      name: form.name,
-      description: form.description,
-      category: form.category as 'Cultura' | 'Aventura' | 'Gastronomía' | 'Naturaleza',
-      price: Number(form.price),
-      duration: Number(form.duration),
-      maxCapacity: Number(form.maxCapacity),
-      availableSpots: Number(form.maxCapacity),
-      rating: 0,
-      city: form.city,
-      meetingPoint: form.meetingPoint,
-      date: form.date,
-      time: form.time,
-      images: ['https://images.unsplash.com/photo-1675695614402-3dd6a58dfffe?w=800'],
-      agencyId: user.id,
-      status: 'Inactivo',
-    };
-
-    setTimeout(() => {
-      addTour(newTour);
-      const tourCode = 'TOUR-' + Date.now().toString().slice(-6);
-      toast.success(`Tour creado con código ${tourCode}. Estado: Inactivo (asigna un guía para activarlo).`);
-      setSaving(false);
+    try {
+      setSaving(true);
+      const startTime = new Date(`${form.date}T${form.time}:00`).toISOString();
+      const result = await apiClient.post<{ id: number; code: string; message: string }>('/tour', {
+        name: form.name,
+        description: form.description,
+        category: form.category,
+        city: form.city,
+        price: Number(form.price),
+        totalCapacity: Number(form.maxCapacity),
+        startTime,
+        durationMinutes: Number(form.duration) * 60,
+        meetingPoint: form.meetingPoint,
+      });
+      toast.success(`Tour creado con código ${result.code}. Asigna un guía para activarlo.`);
       navigate('/agencia/tours');
-    }, 800);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Error al crear el tour');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (

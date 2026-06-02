@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TuristGo.API.DTOs;
+using TuristGo.Domain.Entities;
 using TuristGo.Domain.Enums;
+using TuristGo.Domain.Interfaces.Repositories;
 using TuristGo.Domain.Interfaces.Services;
 
 namespace TuristGo.API.Controllers;
@@ -9,7 +11,12 @@ namespace TuristGo.API.Controllers;
 [ApiController]
 [Authorize]
 [Route("api/reservation")]
-public class ReservationController(IReservationFacade facade) : ControllerBase
+public class ReservationController(
+    IReservationFacade facade,
+    IReservationRepository reservationRepo,
+    IReviewRepository reviewRepo,
+    IGenericRepository<Review> reviewStore,
+    ITourRepository tourRepo) : ControllerBase
 {
     [HttpPost]
     [Authorize(Roles = "Tourist")]
@@ -79,5 +86,47 @@ public class ReservationController(IReservationFacade facade) : ControllerBase
             r.Tour?.Price ?? 0)));
     }
 
-    [HttpPost("{id:int}/review")] public ActionResult Review(int id) => Ok();
+    // HU-55 CA-01–03: calificar tour — solo reservas Completed, una vez por reserva
+    [HttpPost("{id:int}/review")]
+    [Authorize(Roles = "Tourist")]
+    public async Task<ActionResult> Review(int id, [FromBody] ReviewRequestDTO dto)
+    {
+        if (dto.Rating < 1 || dto.Rating > 5)
+            throw new ArgumentException("La calificación debe estar entre 1 y 5 estrellas.");
+
+        var reservation = await reservationRepo.GetByIdAsync(id)
+            ?? throw new KeyNotFoundException("Reserva no encontrada.");
+
+        var touristId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
+        if (reservation.TouristId != touristId)
+            throw new UnauthorizedAccessException("La reserva no pertenece a este usuario.");
+
+        // HU-55 CA-03: solo reservas completadas
+        if (reservation.Status != ReservationStatus.Completed)
+            throw new InvalidOperationException("Solo puedes calificar tours de reservas completadas.");
+
+        // HU-55 CA-02: una sola reseña por reserva (índice único en BD)
+        if (await reviewRepo.ExistsByReservationAsync(id))
+            throw new InvalidOperationException("Ya enviaste una calificación para esta reserva.");
+
+        await reviewStore.CreateAsync(new Review
+        {
+            ReservationId = id,
+            Rating = dto.Rating,
+            Comment = dto.Comment,
+        });
+
+        // Recalcular AverageRating del tour
+        var tour = await tourRepo.GetByIdAsync(reservation.TourId);
+        if (tour is not null)
+        {
+            var allReviews = await reviewRepo.GetAllAsync();
+            var tourReviews = allReviews.Where(r => r.Reservation?.TourId == reservation.TourId || r.ReservationId == id).ToList();
+            var avg = tourReviews.Count > 0 ? (decimal)tourReviews.Average(r => r.Rating) : dto.Rating;
+            tour.AverageRating = Math.Round(avg, 2);
+            await tourRepo.UpdateAsync(tour);
+        }
+
+        return Ok(new { message = "¡Gracias por tu calificación!" });
+    }
 }

@@ -57,7 +57,9 @@ builder.Services.AddScoped<Dictionary<UserRole, IAuthStrategy>>(sp => new()
 builder.Services.AddScoped<IReservationObserver, InvoiceObserver>();
 builder.Services.AddScoped<IReservationObserver, NotificationObserver>();
 builder.Services.AddScoped<IReservationObserver, CapacityObserver>();
+builder.Services.AddScoped<IReservationObserver, CalificacionObserver>(); // PUML: wired en Fase D
 builder.Services.AddScoped<IAgencyObserver, TourStatusObserver>();
+builder.Services.AddScoped<IReviewRepository, ReviewRepository>();
 
 builder.Services.AddScoped<IReservationFacade, ReservationFacade>();
 builder.Services.AddScoped<BillingReportDirector>();
