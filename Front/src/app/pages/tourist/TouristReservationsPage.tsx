@@ -7,6 +7,7 @@ import { Button } from '../../components/ui/button';
 import { StatusBadge } from '../../components/StatusBadge';
 import { useAuth } from '../../lib/auth';
 import { type ApiReservation, getMyReservationsApi, cancelReservationApi } from '../../lib/api/services/reservationService';
+import { apiClient } from '../../lib/api/client';
 
 const statusMap: Record<string, string> = {
   Confirmed: 'Confirmada', Completed: 'Completada', Cancelled: 'Cancelada',
@@ -58,12 +59,18 @@ export function TouristReservationsPage() {
   };
 
 
-  const handleRateTour = () => {
+  const handleRateTour = async () => {
     if (stars === 0) { toast.error('Selecciona una calificación'); return; }
-    toast.success('¡Gracias por tu calificación!');
-    setRateTarget(null);
-    setStars(0);
-    setReview('');
+    if (!rateTarget) return;
+    try {
+      await apiClient.post(`/reservation/${rateTarget}/review`, { rating: stars, comment: review || undefined });
+      toast.success('¡Gracias por tu calificación!');
+      setRateTarget(null);
+      setStars(0);
+      setReview('');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Error al enviar calificación');
+    }
   };
 
   return (

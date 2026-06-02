@@ -7,6 +7,7 @@ import { StatusBadge } from '../../components/StatusBadge';
 import { useAuth } from '../../lib/auth';
 import { Tour } from '../../lib/mockData';
 import { getToursApi, setTourStatusApi } from '../../lib/api/services/tourService';
+import { apiClient } from '../../lib/api/client';
 
 export function AdminServicesPage() {
   const { user, isAuthenticated } = useAuth();
@@ -37,13 +38,12 @@ export function AdminServicesPage() {
 
   const handleBaja = () => {
     if (!bajaTarget) return;
+    if (!motivoBaja.trim()) { toast.error('El motivo es obligatorio (HU-26 CA-02)'); return; }
     const id = Number(bajaTarget);
-    if (!Number.isFinite(id) || id <= 0) {
-      toast.error('Id inválido');
-      return;
-    }
+    if (!Number.isFinite(id) || id <= 0) { toast.error('Id inválido'); return; }
 
-    setTourStatusApi(id, 'Inactivo')
+    // HU-26 CA-01: usa /deactivate que persiste el motivo en DeactivationReason
+    apiClient.patch(`/tour/${id}/deactivate`, { reason: motivoBaja.trim() })
       .then(async () => {
         toast.success('Servicio dado de baja.');
         setBajaTarget(null);
@@ -152,9 +152,10 @@ export function AdminServicesPage() {
               >
                 Cancelar
               </Button>
-              <Button 
-                variant="destructive" 
+              <Button
+                variant="destructive"
                 onClick={handleBaja}
+                disabled={!motivoBaja.trim()}
               >
                 Confirmar baja
               </Button>

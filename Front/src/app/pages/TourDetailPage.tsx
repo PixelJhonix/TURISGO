@@ -1,6 +1,6 @@
 import { useParams, useNavigate, Link } from 'react-router';
 import { useEffect, useState } from 'react';
-import { Star, Clock, Users, MapPin, Calendar, X, Check } from 'lucide-react';
+import { Star, Clock, Users, MapPin, Calendar, X, Check, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Navbar } from '../components/Navbar';
 import { Button } from '../components/ui/button';
@@ -53,7 +53,7 @@ export function TourDetailPage() {
 
   const handleConfirmReservation = async () => {
     const selectedSchedule = tour?.schedules?.find((s) => s.id === selectedScheduleId);
-    if (tour) {
+    try {
       const created = await createReservationApi({
         tourId: Number(tour.id),
         tourDate: tour.date,
@@ -61,12 +61,15 @@ export function TourDetailPage() {
         endTime: selectedSchedule?.endTime,
         tourScheduleId: selectedSchedule ? Number(String(selectedSchedule.id).replace(/\D/g, '')) : undefined,
       });
-      const resNumber = created?.id ? `RES-${created.id}` : `RES-${Date.now()}`;
+      const resNumber = (created as any)?.reservationNumber ?? `RES-${(created as any)?.id ?? Date.now()}`;
       setReservationNumber(resNumber);
       toast.success(`¡Reserva confirmada! Número: ${resNumber}`);
+      setIsReserved(true);
+      setShowConfirmModal(false);
+    } catch (e) {
+      // El backend devuelve 409 para conflicto de horario con mensaje descriptivo
+      toast.error(e instanceof Error ? e.message : 'No fue posible confirmar la reserva');
     }
-    setIsReserved(true);
-    setShowConfirmModal(false);
   };
 
   const categoryColors: Record<string, string> = {
@@ -380,54 +383,7 @@ export function TourDetailPage() {
         </div>
       )}
 
-      {/* Schedule Conflict Alert */}
-      {showScheduleConflictAlert && conflictingReservation && (
-        <div
-          className="fixed inset-0 flex items-center justify-center z-50 p-4"
-          style={{ backgroundColor: 'rgba(0, 0, 0, 0.4)' }}
-        >
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md animate-in fade-in zoom-in duration-200">
-            <div className="px-6 py-5 border-b border-gray-200">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
-                  <AlertCircle className="h-6 w-6 text-red-600" />
-                </div>
-                <h2 className="text-xl font-semibold text-red-900">
-                  Conflicto de horario detectado
-                </h2>
-              </div>
-            </div>
-
-            <div className="px-6 py-5">
-              <p className="text-gray-700 mb-4">
-                Ya tienes reservado:
-              </p>
-              <div className="p-4 bg-red-50 rounded-lg border border-red-200 mb-4">
-                <p className="font-semibold text-red-900">
-                  {conflictingReservation.tour?.name}
-                </p>
-                <p className="text-sm text-red-800 mt-1">
-                  de {conflictingReservation.reservation.startTime} a {conflictingReservation.reservation.endTime}
-                </p>
-              </div>
-              <p className="text-gray-700">
-                No puedes confirmar esta reserva porque los horarios se superponen.
-              </p>
-            </div>
-
-            <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 rounded-b-xl flex justify-end">
-              <Button
-                onClick={() => {
-                  setShowScheduleConflictAlert(false);
-                  setConflictingReservation(null);
-                }}
-              >
-                Entendido
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* El backend devuelve 409 con mensaje de conflicto de horario — se muestra via toast.error en handleConfirmReservation */}
     </div>
   );
 }
